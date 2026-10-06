@@ -1,11 +1,13 @@
-interface Sounds {
+export interface Sound {
   url: string;
   name: string;
   color: 'W' | 'B';
   keyCode: string[];
 }
 
-export const pianoSounds: Sounds[] = [
+export type Instrument = 'Drum' | 'Piano';
+
+export const pianoSounds: Sound[] = [
   {
     url: '/audio/piano/piano48.wav',
     name: '도',
@@ -224,10 +226,10 @@ export const pianoSounds: Sounds[] = [
   },
 ];
 
-export const drumSounds: Sounds[] = [
+export const drumSounds: Sound[] = [
   {
     url: '/audio/drum/Kick1.wav',
-    name: 'kick1',
+    name: 'Kick1',
     color: 'W',
     keyCode: ['7'],
   },
