@@ -1,121 +1,77 @@
+import type { Sound } from '@/constant/sound';
 import { cn } from '@/utils/cn';
-import { generateRandomNumber } from '@/utils/generateRandomNumber';
-import { isMobile } from '@/utils/isMobile';
-import { useEffect, useState } from 'react';
-import useSound from 'use-sound';
-import { showTextStore } from '../../store/store';
+import { memo, useEffect, useRef } from 'react';
 
-const randomColor = [
-  'shadow-[inset_0_0_20px_20px_rgba(190,242,100,1),0_0_13px_13px_rgba(190,242,100,0.4)]',
-  'shadow-[inset_0_0_20px_20px_rgba(249,168,212,1),0_0_13px_13px_rgba(249,168,212,0.4)]',
-  'shadow-[inset_0_0_20px_20px_rgba(125,211,252,1),0_0_13px_13px_rgba(125,211,252,0.4)]',
-  'shadow-[inset_0_0_20px_20px_rgba(216,180,254,1),0_0_13px_13px_rgba(216,180,254,0.4)]',
-].map(color => `${color} bg-white`);
+interface KeyPadProps {
+  sound: Sound;
+  active: boolean;
+  disabled: boolean;
+  showPitch: boolean;
+  showKeyboard: boolean;
+  press: (source: string, sound: Sound) => void;
+  release: (source: string) => void;
+  octave?: string;
+}
 
-const KeyPad = ({
-  url,
-  name,
-  color,
-  keyCode,
-}: {
-  url: string;
-  name: string;
-  color: 'W' | 'B';
-  keyCode: string[];
-}) => {
-  const { showPitch, showKeyboard } = showTextStore(state => state);
-
-  const [play, { stop, sound }] = useSound(url, {
-    interrupt: false,
-    soundEnabled: true,
-  });
-
-  const [clicked, setClicked] = useState(false);
-  const [activeColor, setActiveColor] = useState('');
-
-  useEffect(() => {
-    setActiveColor(randomColor[generateRandomNumber(0, 3)]);
-  }, [clicked]);
-
-  useEffect(() => {
-    document.addEventListener('keydown', keyDownHandler);
-    document.addEventListener('keyup', keyUpHandler);
-    return () => {
-      document.removeEventListener('keydown', keyDownHandler);
-      document.removeEventListener('keyup', keyUpHandler);
-    };
-  }, [sound]);
-
-  const keyDownHandler = (e: KeyboardEvent) => {
-    if (keyCode.includes(e.key) || keyCode.includes(e.key.toLowerCase())) {
-      padOn();
-    }
-  };
-
-  const keyUpHandler = (e: KeyboardEvent) => {
-    if (keyCode.includes(e.key) || keyCode.includes(e.key.toLowerCase())) {
-      padOff();
-    }
-  };
-
-  const padOn = () => {
-    setClicked(true);
-
-    stop();
-    play();
-  };
-
-  const padOff = () => {
-    setClicked(false);
-  };
-
+export default memo(function KeyPad({
+  sound,
+  active,
+  disabled,
+  showPitch,
+  showKeyboard,
+  press,
+  release,
+  octave,
+}: KeyPadProps) {
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current);
+    },
+    [],
+  );
   return (
-    <div
-      onMouseDown={padOn}
-      onMouseUp={padOff}
-      onMouseLeave={padOff}
-      onTouchStart={e => {
-        padOn();
+    <button
+      type="button"
+      disabled={disabled}
+      aria-label={`${sound.name}${octave ? ` ${octave}` : ''}, 단축키 ${sound.keyCode[0]}`}
+      data-pad={sound.url}
+      data-active={active}
+      onPointerDown={event => {
+        if (event.button !== 0) return;
+        event.currentTarget.setPointerCapture(event.pointerId);
+        press(`pointer:${event.pointerId}`, sound);
       }}
-      onTouchEnd={e => {
-        e.preventDefault();
-        padOff();
+      onPointerUp={event => release(`pointer:${event.pointerId}`)}
+      onPointerCancel={event => release(`pointer:${event.pointerId}`)}
+      onLostPointerCapture={event => release(`pointer:${event.pointerId}`)}
+      onKeyDown={event => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        if (!event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey)
+          press(`focus:${event.code}`, sound);
       }}
+      onKeyUp={event => release(`focus:${event.code}`)}
+      onBlur={() => {
+        release('focus:Enter');
+        release('focus:Space');
+      }}
+      onClick={event => {
+        if (event.detail !== 0) return;
+        clearTimeout(timer.current);
+        release(`assist:${sound.url}`);
+        press(`assist:${sound.url}`, sound);
+        timer.current = setTimeout(() => release(`assist:${sound.url}`), 150);
+      }}
+      onContextMenu={event => event.preventDefault()}
       className={cn(
-        `relative flex aspect-square w-full cursor-pointer items-center justify-center rounded-md transition-colors duration-75`,
-        {
-          [`${activeColor} text-black`]: clicked,
-          'shadow-[inset_0_0px_8px_8px_rgba(0,0,0,0.3)]': !clicked,
-          'bg-zinc-600 text-white': !clicked && color === 'B',
-          'bg-zinc-200 text-black': !clicked && color === 'W',
-        },
+        'pad',
+        octave && sound.color === 'B' && 'pad-dark',
+        active && 'pad-active',
       )}
     >
-      {showPitch && (
-        <span
-          className={cn(`text-sm transition-all duration-75 sm:text-lg`, {
-            'opacity-0': clicked,
-            'opacity-100': !clicked,
-          })}
-        >
-          {name}
-        </span>
-      )}
-      {!isMobile() && showKeyboard && (
-        <span
-          className={cn(
-            `absolute bottom-[3%] right-[10%] text-[10px] font-semibold sm:text-base`,
-            {
-              'opacity-0': clicked,
-              'opacity-100': !clicked,
-            },
-          )}
-        >
-          『{keyCode[0]}』
-        </span>
-      )}
-    </div>
+      {showPitch && <span className="pad-name">{sound.name}</span>}
+      {showKeyboard && <span className="pad-shortcut">{sound.keyCode[0]}</span>}
+    </button>
   );
-};
-
-export default KeyPad;
+});
