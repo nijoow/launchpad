@@ -33,3 +33,40 @@ test('repeat and modifier shortcuts do not trigger an instrument', () => {
   }
   assert.equal(matchSound(drumSounds, key), undefined);
 });
+
+test('all nine numpad drum keys work with Num Lock on or off', () => {
+  const pads = [
+    ['1', 'End', 'Snare2'],
+    ['2', 'ArrowDown', 'Snare3'],
+    ['3', 'PageDown', 'Snare4'],
+    ['4', 'ArrowLeft', 'Hat2'],
+    ['5', 'Clear', 'Hat3'],
+    ['6', 'ArrowRight', 'Snare1'],
+    ['7', 'Home', 'Kick1'],
+    ['8', 'ArrowUp', 'Kick2'],
+    ['9', 'PageUp', 'Hat1'],
+  ];
+  for (const [digit, navigation, sample] of pads) {
+    for (const value of [digit, navigation]) {
+      assert.equal(
+        matchSound(drumSounds, {
+          ...key,
+          key: value,
+          code: `Numpad${digit}`,
+        })?.url,
+        `/audio/drum/${sample}.wav`,
+        `Numpad${digit} with key ${value}`,
+      );
+    }
+  }
+});
+
+test('numpad repeats, shortcuts, and unrelated keys do not play drums', () => {
+  const numpad = { ...key, key: '7', code: 'Numpad7' };
+  for (const flag of ['repeat', 'ctrlKey', 'metaKey', 'altKey']) {
+    assert.equal(matchSound(drumSounds, { ...numpad, [flag]: true }), undefined);
+  }
+  for (const code of ['Numpad0', 'NumpadEnter', 'NumpadDecimal', 'ArrowUp']) {
+    assert.equal(matchSound(drumSounds, { ...key, code }), undefined);
+  }
+});

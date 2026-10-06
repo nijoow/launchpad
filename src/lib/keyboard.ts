@@ -24,9 +24,12 @@ export function matchSound(
   >,
 ) {
   if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+  const code = /^Numpad[0-9]$/.test(event.code)
+    ? event.code.replace('Numpad', 'Digit')
+    : event.code;
   return sounds.find(sound =>
-    event.code
-      ? physicalKey(sound.keyCode[0]) === event.code
+    code
+      ? physicalKey(sound.keyCode[0]) === code
       : sound.keyCode.includes(event.key) ||
         sound.keyCode.includes(event.key.toLowerCase()),
   );
