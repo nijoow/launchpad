@@ -39,7 +39,7 @@
 }
 
 .studio {
-  width: min(100% - 80px, 920px);
+  width: min(100% - 80px, 1120px);
   margin: 0 auto;
   padding: 28px 0 28px;
 }
@@ -487,6 +487,17 @@
 @container (min-width: 640px) {
   .piano-octave-grid {
     grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .piano-stage .pad {
+    min-height: 88px;
+  }
+  .piano-stage .pad-name {
+    font-size: 13px;
+  }
+  .piano-stage .pad-shortcut {
+    right: 8px;
+    bottom: 6px;
+    font-size: 11px;
   }
 }
 @media (max-width: 639px) {
