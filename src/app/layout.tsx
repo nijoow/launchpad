@@ -1,12 +1,10 @@
 import type { Metadata } from 'next';
-import { Jua } from 'next/font/google';
 import './globals.css';
-
-const jua = Jua({ weight: '400', subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Nijoow LaunchPad',
-  description: 'LaunchPad Piano and Drum',
+  description:
+    '피아노와 드럼을 연주하고, 4마디 루프를 녹음해 내 기기에 저장하세요.',
 };
 
 export default function RootLayout({
@@ -15,12 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <body
-        className={`${jua.className} flex h-full min-h-screen flex-col bg-zinc-700`}
-      >
-        {children}
-      </body>
+    <html lang="ko" className="h-full">
+      <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );
 }
