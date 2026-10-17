@@ -57,8 +57,8 @@ test('store successfully saves and restores state (control path)', async () => {
 
     // 1. Modify state to trigger save using public actions as requested
     showTextStore.getState().setVolume(0.2);
-    showTextStore.getState().toggleShowPitch();
-    showTextStore.getState().toggleShowKeyboard();
+    if (showTextStore.getState().showPitch) showTextStore.getState().toggleShowPitch();
+    if (showTextStore.getState().showKeyboard) showTextStore.getState().toggleShowKeyboard();
 
     // Verify state was saved to our mock using the exact correct key
     assert.equal(receivedKeyForSet, 'nijoow-settings');
@@ -77,14 +77,12 @@ test('store successfully saves and restores state (control path)', async () => {
     // 2. Reset memory state manually
     showTextStore.setState({ volume: 0.7, showPitch: true, showKeyboard: true });
 
-    // In order to prove a true round trip, we rely on the string we captured from setItem.
+    // Restore the stored string and rehydrate properly using the persist abstraction
     storedData = preservedString;
-
-    // Since skipHydration is true, hasHydrated evaluates to false normally until the first manual rehydrate().
-    // We already proved earlier that simply re-assigning `storedData` and calling `await showTextStore.persist.rehydrate()` correctly rehydrates, unless skipHydration blocks it.
-    // wait, I must test this. If I call rehydrate() directly, I need to check if it parses.
     await showTextStore.persist.rehydrate();
+
     assert.equal(receivedKeyForGet, 'nijoow-settings');
+    assert.equal(showTextStore.persist.hasHydrated(), true);
 
     // We expect the store to rehydrate volume and settings
     assert.equal(showTextStore.getState().volume, 0.2);
@@ -121,8 +119,8 @@ test('store gracefully handles localStorage errors on setItem', () => {
     assert.doesNotThrow(() => {
       // Use public actions
       showTextStore.getState().setVolume(0.5);
-      showTextStore.getState().toggleShowPitch();
-      showTextStore.getState().toggleShowKeyboard();
+      if (showTextStore.getState().showPitch) showTextStore.getState().toggleShowPitch();
+      if (showTextStore.getState().showKeyboard) showTextStore.getState().toggleShowKeyboard();
     });
 
     assert.equal(setItemCalled, true);
@@ -152,15 +150,21 @@ test('store gracefully handles localStorage errors on getItem', async () => {
     resetStoreState();
 
     // Mutate state to non-default values to ensure getItem failure preserves current memory state, not just defaults
-    showTextStore.setState({ volume: 0.3, showPitch: false, showKeyboard: false });
+    showTextStore.getState().setVolume(0.3);
+    if (showTextStore.getState().showPitch) showTextStore.getState().toggleShowPitch();
+    if (showTextStore.getState().showKeyboard) showTextStore.getState().toggleShowKeyboard();
 
-    assert.doesNotThrow(() => {
-      // Simulate rehydrate fetching logic by calling rehydrate.
-      showTextStore.persist.rehydrate();
-    });
+    // We MUST await rehydrate because it returns a promise, and hasHydrated resolves when it finishes.
+    let rehydrateFailed = false;
+    try {
+      await showTextStore.persist.rehydrate();
+    } catch {
+      rehydrateFailed = true;
+    }
 
-    // We expect getItem to have been called during rehydrate.
+    assert.equal(rehydrateFailed, false);
     assert.equal(getItemCalled, true);
+    assert.equal(showTextStore.persist.hasHydrated(), true);
 
     // Verify non-default memory state is preserved when load fails
     assert.equal(showTextStore.getState().volume, 0.3);
