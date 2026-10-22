@@ -17,7 +17,7 @@ export interface ProjectContent {
   events: NoteEvent[];
 }
 export interface Project extends ProjectContent {
-  version: 1;
+  version: 1 | 2;
   id: string;
   bars: 4;
   createdAt: number;
@@ -38,7 +38,8 @@ export function contentFingerprint(content: ProjectContent) {
 export function parseProject(value: unknown): Project | null {
   if (!value || typeof value !== 'object') return null;
   const item = value as Record<string, unknown>;
-  if (item.version !== 1 || item.bars !== LOOP_BARS) return null;
+  if ((item.version !== 1 && item.version !== 2) || item.bars !== LOOP_BARS)
+    return null;
   if (typeof item.id !== 'string' || !/^[\w-]{1,80}$/.test(item.id))
     return null;
   if (
@@ -73,9 +74,12 @@ export function parseProject(value: unknown): Project | null {
   if (!Array.isArray(item.events) || item.events.length > MAX_EVENTS)
     return null;
   const allowed = new Set(
-    (item.instrument === 'Piano' ? pianoSounds : drumSounds).map(
-      sound => sound.url,
-    ),
+    (item.version === 2
+      ? [...pianoSounds, ...drumSounds]
+      : item.instrument === 'Piano'
+        ? pianoSounds
+        : drumSounds
+    ).map(sound => sound.url),
   );
   const events: NoteEvent[] = [];
   for (const value of item.events) {
@@ -93,7 +97,7 @@ export function parseProject(value: unknown): Project | null {
     events.push({ padId: event.padId, beat: event.beat });
   }
   return {
-    version: 1,
+    version: item.version,
     id: item.id,
     bars: 4,
     name: item.name.trim(),

@@ -75,8 +75,17 @@ export default function ProjectLibrary({
               >
                 <span className="library-name">{project.name}</span>
                 <span className="library-meta">
-                  {project.instrument} · {project.bpm} BPM ·{' '}
-                  {project.events.length}개 음
+                  {[
+                    project.events.some(event =>
+                      event.padId.startsWith('/audio/drum/'),
+                    ) && 'Drum',
+                    project.events.some(event =>
+                      event.padId.startsWith('/audio/piano/'),
+                    ) && 'Piano',
+                  ]
+                    .filter(Boolean)
+                    .join(' + ')}{' '}
+                  · {project.bpm} BPM · {project.events.length}개 음
                 </span>
               </button>
               <time

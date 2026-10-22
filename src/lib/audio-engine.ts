@@ -21,7 +21,7 @@ export class AudioEngine {
     if (!this.context) {
       this.context = this.options.createContext
         ? this.options.createContext()
-        : new AudioContext();
+        : new AudioContext({ latencyHint: 'interactive' });
       this.output = this.context.createGain();
       this.output.gain.value = this.volume;
       this.output.connect(this.context.destination);
@@ -100,7 +100,13 @@ export class AudioEngine {
     oscillator.stop(time + 0.05);
   }
 
+  getSample(url: string) {
+    return this.buffers.get(url);
+  }
+
   async trigger(url: string) {
+    // Avoid a microtask on every warm pad press.
+    if (this.context?.state === 'running') return this.playSample(url);
     const generation = this.generation;
     await this.resume();
     if (generation !== this.generation || this.disposed) return false;

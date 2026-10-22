@@ -77,3 +77,26 @@ test('stopping during pending audio resume cancels the start', async t => {
   assert.equal(f.state().status, 'idle');
   assert.equal(f.played.length, 0);
 });
+
+test('layer recording preserves the other instrument, plays it during recording and merges at the boundary', async t => {
+  const f = fixture();
+  t.after(() => f.transport.dispose());
+  f.transport.replaceEvents([{ padId: 'kick', beat: 0 }, { padId: 'piano', beat: 1 }]);
+  await f.transport.startRecording({ ...options, recordPadIds: ['piano'] });
+  assert.deepEqual(f.state().events, [{ padId: 'kick', beat: 0 }]);
+  f.audio.currentTime = 2;
+  f.transport.tick();
+  assert.equal(f.played[0].url, 'kick');
+  assert.ok(Math.abs(f.played[0].time - 2.05) < 0.00001);
+  f.audio.currentTime = 2.55;
+  f.transport.tick();
+  f.transport.capture('piano');
+  f.transport.capture('foreign');
+  assert.deepEqual(f.state().events, [{ padId: 'kick', beat: 0 }, { padId: 'piano', beat: 1 }]);
+  f.audio.currentTime = 10;
+  f.transport.tick();
+  assert.equal(f.played.filter(event => event.url === 'kick' && event.time > 10).length, 1);
+  f.audio.currentTime = 10.5;
+  f.transport.tick();
+  assert.equal(f.played.filter(event => event.url === 'piano').length, 1);
+});

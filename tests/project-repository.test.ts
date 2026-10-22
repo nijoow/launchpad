@@ -53,3 +53,31 @@ test('an aborted write reports failure and does not leave a partially saved loop
   assert.deepEqual(await repo.list(), []);
   await repo.close();
 });
+
+test('v1 and layered v2 coexist and restore across a fresh connection', async () => {
+  const factory = new IDBFactory();
+  const first = new ProjectRepository({ factory, name: 'layered-roundtrip' });
+  const layered: Project = {
+    ...project,
+    id: 'layered',
+    version: 2,
+    events: [
+      ...project.events,
+      { padId: '/audio/piano/piano60.wav', beat: 1.25 },
+    ],
+  };
+  await first.save(project);
+  await first.save(layered);
+  await first.close();
+  const second = new ProjectRepository({ factory, name: 'layered-roundtrip' });
+  const saved = await second.list();
+  assert.deepEqual(
+    saved.find(item => item.id === 'layered'),
+    layered,
+  );
+  assert.deepEqual(
+    saved.find(item => item.id === project.id),
+    project,
+  );
+  await second.close();
+});
