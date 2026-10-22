@@ -1,0 +1,91 @@
+{
+  "base": "http://localhost:3144",
+  "date": "2026-10-22T06:54:45.586Z",
+  "browser": "151.0.7922.173",
+  "checks": [
+    {
+      "name": "first trusted touch starts native audio graph",
+      "detail": {
+        "before": [
+          "suspended"
+        ],
+        "states": [
+          "running"
+        ],
+        "starts": [
+          {
+            "state": "running",
+            "duration": 1.7142857142857142
+          }
+        ]
+      }
+    },
+    {
+      "name": "explicit mobile sound start",
+      "detail": "native AudioContext running"
+    },
+    {
+      "name": "trusted two-finger touch, independent release and cancel",
+      "detail": "2 → 1 → 0 active pads; exactly two sample starts"
+    },
+    {
+      "name": "IndexedDB save and reload restoration",
+      "detail": {
+        "version": 2,
+        "events": [
+          {
+            "padId": "/audio/drum/Kick1.wav",
+            "beat": 0
+          },
+          {
+            "padId": "/audio/piano/piano48.wav",
+            "beat": 1
+          }
+        ],
+        "bpm": 120
+      }
+    },
+    {
+      "name": "fresh browser share preview → explicit import → separate save",
+      "detail": {
+        "events": [
+          {
+            "padId": "/audio/drum/Kick1.wav",
+            "beat": 0
+          },
+          {
+            "padId": "/audio/piano/piano48.wav",
+            "beat": 1
+          }
+        ],
+        "distinctId": true,
+        "fragmentRemoved": true
+      }
+    },
+    {
+      "name": "shared loop playback and actual WAV download",
+      "detail": {
+        "channels": 2,
+        "rate": 44100,
+        "bits": 16,
+        "frames": 352800,
+        "nonzero": 159944,
+        "bytes": 1411244
+      }
+    },
+    {
+      "name": "390px and 360px mobile viewport",
+      "detail": "no horizontal document overflow"
+    },
+    {
+      "name": "browser errors and HTTP failures",
+      "detail": {
+        "errors": [],
+        "failures": []
+      }
+    }
+  ],
+  "errors": [],
+  "failures": [],
+  "result": "passed"
+}
