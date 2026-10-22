@@ -1,4 +1,5 @@
 import type { Sound } from '@/constant/sound';
+import { HeldInputs } from '@/lib/held-inputs';
 import { matchSound } from '@/lib/keyboard';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -7,20 +8,17 @@ export default function usePadInput(
   enabled: boolean,
   onPlay: (sound: Sound) => void,
 ) {
-  const held = useRef(new Map<string, string>());
+  const held = useRef(new HeldInputs());
   const [active, setActive] = useState(new Set<string>());
   const onPlayRef = useRef(onPlay);
   useEffect(() => {
     onPlayRef.current = onPlay;
   }, [onPlay]);
 
-  const refresh = useCallback(
-    () => setActive(new Set(held.current.values())),
-    [],
-  );
+  const refresh = useCallback(() => setActive(held.current.active()), []);
   const release = useCallback(
     (source: string) => {
-      if (held.current.delete(source)) refresh();
+      if (held.current.release(source)) refresh();
     },
     [refresh],
   );
@@ -30,8 +28,7 @@ export default function usePadInput(
   }, [refresh]);
   const press = useCallback(
     (source: string, sound: Sound) => {
-      if (!enabled || held.current.has(source)) return;
-      held.current.set(source, sound.url);
+      if (!enabled || !held.current.press(source, sound.url)) return;
       refresh();
       onPlayRef.current(sound);
     },

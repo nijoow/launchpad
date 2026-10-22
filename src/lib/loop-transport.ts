@@ -25,6 +25,7 @@ export interface TransportOptions {
   bpm: number;
   quantize: boolean;
   metronome: boolean;
+  recordPadIds?: string[];
 }
 
 interface TransportAudio {
@@ -60,6 +61,8 @@ export class LoopTransport {
   private timer: ReturnType<typeof setInterval> | null = null;
   private generation = 0;
   private notice = '';
+  private backing: NoteEvent[] = [];
+  private backingUntil = 0;
 
   constructor(
     private audio: TransportAudio,
@@ -142,11 +145,18 @@ export class LoopTransport {
       this.options = { ...options, bpm: clampBpm(options.bpm) };
       const secondsPerBeat = 60 / this.options.bpm;
       const base = this.audio.currentTime + 0.05;
-      if (record) this.events = [];
+      this.backing =
+        record && options.recordPadIds
+          ? this.events.filter(
+              event => !options.recordPadIds!.includes(event.padId),
+            )
+          : [];
+      if (record) this.events = [...this.backing];
       this.recordStart = base + (record ? BEATS_PER_BAR * secondsPerBeat : 0);
       this.playbackStart =
         this.recordStart + (record ? LOOP_BEATS * secondsPerBeat : 0);
       this.scheduledUntil = this.playbackStart;
+      this.backingUntil = this.recordStart;
       this.nextClick = record ? -BEATS_PER_BAR : 0;
       this.status = record ? 'countin' : 'playing';
       this.timer = setInterval(() => this.tick(), 25);
@@ -165,7 +175,9 @@ export class LoopTransport {
       this.options.bpm,
       this.options.quantize,
     );
-    if (beat === null) return;
+    if (beat === null || this.events.length >= 4096) return;
+    if (this.options.recordPadIds && !this.options.recordPadIds.includes(padId))
+      return;
     // Quantization can align two quick taps to one step; play it only once in the loop.
     if (
       !this.events.some(
@@ -208,6 +220,18 @@ export class LoopTransport {
         );
       }
       this.nextClick += 1;
+    }
+
+    if (this.backing.length && this.backingUntil < this.playbackStart) {
+      const until = Math.min(horizon, this.playbackStart);
+      occurrences(
+        this.backing,
+        this.recordStart,
+        this.options.bpm,
+        Math.max(this.backingUntil, now - 0.025),
+        until,
+      ).forEach(event => this.audio.playSample(event.padId, event.time));
+      this.backingUntil = Math.max(this.backingUntil, until);
     }
 
     if (horizon > this.playbackStart && this.events.length) {

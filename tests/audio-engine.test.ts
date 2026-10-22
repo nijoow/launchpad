@@ -136,3 +136,16 @@ test('a pending first gesture cannot start a voice after stop or instrument chan
   assert.equal(sources.length, 0);
   engine.dispose();
 });
+
+test('warm presses schedule synchronously with independent overlapping voices', async () => {
+  const { engine, sources } = fixture();
+  await engine.loadSamples(['kick']);
+  await engine.resume();
+  const first = engine.trigger('kick');
+  const second = engine.trigger('kick');
+  assert.equal(sources.length, 2, 'no microtask or fetch on the warm input path');
+  assert.equal(sources[0].stopped, false);
+  assert.equal(await first, true);
+  assert.equal(await second, true);
+  engine.dispose();
+});

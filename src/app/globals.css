@@ -610,3 +610,84 @@
     animation-duration: 0.01ms !important;
   }
 }
+
+.layer-note,
+.loop-tools p,
+.loop-tools label span {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 10px 0 16px;
+}
+.loop-tools {
+  border-top: 1px solid var(--line);
+  padding: 18px 24px;
+}
+.tool-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.loop-tools .save-button {
+  min-height: 44px;
+}
+.loop-tools input {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  background: var(--page);
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+.loop-editor summary {
+  cursor: pointer;
+  padding: 14px 0;
+  min-height: 44px;
+}
+.loop-editor select {
+  background: var(--page);
+  padding: 10px;
+  max-width: 100%;
+}
+.editor-bar {
+  margin-top: 14px;
+  font-size: 11px;
+}
+.editor-steps {
+  display: grid;
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+}
+.editor-steps button {
+  border: 1px solid var(--line);
+  min-height: 44px;
+  border-radius: 3px;
+}
+.editor-steps button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--page);
+}
+.share-incoming {
+  padding: 16px;
+  border: 1px solid var(--accent);
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.studio-notification {
+  color: var(--accent);
+  font-size: 12px;
+  margin-top: 12px;
+}
+@media (max-width: 639px) {
+  .loop-tools {
+    padding: 16px;
+  }
+  .editor-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

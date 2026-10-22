@@ -10,20 +10,26 @@ import useAudioEngine from '@/hooks/useAudioEngine';
 import usePadInput from '@/hooks/usePadInput';
 import useLoopTransport from '@/hooks/useLoopTransport';
 import useProjects from '@/hooks/useProjects';
+import { decodeShare, encodeShare } from '@/lib/share';
+import { renderWav } from '@/lib/wav';
+import type { NoteEvent } from '@/lib/timeline';
+import LoopEditor from './_components/LoopEditor';
 import { contentFingerprint, type Project } from '@/lib/project';
 import { rememberProject } from '@/lib/project-repository';
 import { showTextStore } from '@/store/store';
 import { cn } from '@/utils/cn';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PadBoard from './_components/PadBoard';
 import PerformanceSettings from './_components/PerformanceSettings';
 import TransportControls from './_components/TransportControls';
 import ProjectLibrary from './_components/ProjectLibrary';
 
+const allSounds = [...drumSounds, ...pianoSounds];
+
 export default function Home() {
   const [instrument, setInstrument] = useState<Instrument>('Drum');
   const sounds = instrument === 'Piano' ? pianoSounds : drumSounds;
-  const { engine, ready, error, setError, retry } = useAudioEngine(sounds);
+  const { engine, ready, error, setError, retry } = useAudioEngine(allSounds);
   const transport = useLoopTransport(engine);
   const { capture, replace } = transport;
   const library = useProjects();
@@ -32,19 +38,27 @@ export default function Home() {
   const [createdAt, setCreatedAt] = useState<number | null>(null);
   const [savedFingerprint, setSavedFingerprint] = useState<string | null>(null);
   const [notification, setNotification] = useState('');
+  const [undo, setUndo] = useState<NoteEvent[] | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [incoming, setIncoming] = useState<Project | null>(null);
   const [bpm, setBpm] = useState(120);
   const [metronome, setMetronome] = useState(false);
   const [quantize, setQuantize] = useState(true);
-  const running = transport.status !== 'idle';
+  const running = transport.status !== 'idle' || exporting;
   const studioReady = ready && !library.loading && !library.busy;
-  const fingerprint = contentFingerprint({
-    name,
-    instrument,
-    bpm,
-    quantize,
-    metronome,
-    events: transport.events,
-  });
+  const fingerprint = useMemo(
+    () =>
+      contentFingerprint({
+        name,
+        instrument,
+        bpm,
+        quantize,
+        metronome,
+        events: transport.events,
+      }),
+    [name, instrument, bpm, quantize, metronome, transport.events],
+  );
   const dirty =
     (currentId !== null || transport.events.length > 0) &&
     fingerprint !== savedFingerprint;
@@ -81,6 +95,8 @@ export default function Home() {
       setCreatedAt(project.createdAt);
       setSavedFingerprint(contentFingerprint(project));
       setNotification('');
+      setUndo(null);
+      setShareUrl('');
     },
     [replace, releaseAll],
   );
@@ -88,6 +104,19 @@ export default function Home() {
   useEffect(() => {
     if (library.initialProject) applyProject(library.initialProject);
   }, [library.initialProject, applyProject]);
+
+  useEffect(() => {
+    const read = () => {
+      const hash = window.location.hash;
+      const shared = decodeShare(hash);
+      setIncoming(shared);
+      if (hash.startsWith('#loop=') && !shared)
+        setNotification('공유 링크가 손상되었거나 너무 길어요.');
+    };
+    read();
+    window.addEventListener('hashchange', read);
+    return () => window.removeEventListener('hashchange', read);
+  }, []);
 
   useEffect(() => {
     if (!dirty || !transport.events.length) return;
@@ -117,13 +146,15 @@ export default function Home() {
     setSavedFingerprint(null);
     setNotification('');
     rememberProject(null);
+    setUndo(null);
+    setShareUrl('');
   };
 
   const saveProject = async () => {
     if (running || !transport.events.length || library.busy) return;
     const now = Date.now();
     const saved = await library.save({
-      version: 1,
+      version: 2,
       bars: 4,
       id: currentId ?? crypto.randomUUID(),
       name: name.trim() || '이름 없는 루프',
@@ -167,7 +198,41 @@ export default function Home() {
   };
 
   const changeInstrument = (mode: Instrument) => {
-    if (mode !== instrument) newProject(mode);
+    if (mode === instrument || running || library.busy) return;
+    releaseAll();
+    engine.current?.stopAll();
+    setInstrument(mode);
+  };
+
+  const edit = (events: NoteEvent[]) => {
+    if (running) return;
+    setUndo(transport.events);
+    replace(events);
+    setShareUrl('');
+  };
+
+  const exportAudio = async () => {
+    if (!engine.current || !transport.events.length || running) return;
+    setExporting(true);
+    try {
+      const blob = await renderWav(
+        engine.current,
+        transport.events,
+        bpm,
+        volume,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'launchpad-loop.wav';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setNotification('4마디 WAV 파일을 내보냈어요.');
+    } catch {
+      setNotification('WAV 내보내기에 실패했어요. 다시 시도해 주세요.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -178,6 +243,51 @@ export default function Home() {
         </h1>
         <span className="studio-signature">by nijoow</span>
       </header>
+      {incoming && (
+        <section className="share-incoming">
+          <p>
+            공유받은 루프 · {incoming.events.length}개 음 · {incoming.bpm} BPM
+          </p>
+          <button
+            type="button"
+            className="save-button"
+            disabled={running || library.loading || library.busy}
+            onClick={() => {
+              if (!canDiscard()) return;
+              applyProject(incoming);
+              setCurrentId(null);
+              setCreatedAt(null);
+              setSavedFingerprint(null);
+              setIncoming(null);
+              rememberProject(null);
+              window.history.replaceState(
+                null,
+                '',
+                window.location.pathname + window.location.search,
+              );
+              setNotification(
+                '공유 루프를 열었어요. 저장하면 이 기기에 보관돼요.',
+              );
+            }}
+          >
+            공유 루프 열기
+          </button>
+          <button
+            type="button"
+            className="text-button"
+            onClick={() => {
+              setIncoming(null);
+              window.history.replaceState(
+                null,
+                '',
+                window.location.pathname + window.location.search,
+              );
+            }}
+          >
+            닫기
+          </button>
+        </section>
+      )}
       <div className="instrument">
         <div className="project-toolbar">
           <div className="project-title">
@@ -246,7 +356,14 @@ export default function Home() {
                     instrument === mode && 'selected',
                   )}
                 >
-                  {mode}
+                  {mode} ·{' '}
+                  {
+                    transport.events.filter(event =>
+                      (mode === 'Drum' ? drumSounds : pianoSounds).some(
+                        sound => sound.url === event.padId,
+                      ),
+                    ).length
+                  }
                 </button>
               ))}
             </div>
@@ -260,6 +377,23 @@ export default function Home() {
               다시 시도
             </button>
           )}
+          <button
+            type="button"
+            className="text-button"
+            disabled={!ready || running}
+            onClick={() => {
+              void engine.current
+                ?.resume()
+                .then(() =>
+                  setNotification('소리가 준비됐어요. 패드를 연주해 주세요.'),
+                )
+                .catch(() =>
+                  setError('소리를 시작하지 못했어요. 다시 눌러 주세요.'),
+                );
+            }}
+          >
+            소리 시작 · 모바일에서 먼저 눌러 주세요
+          </button>
           <PadBoard
             instrument={instrument}
             ready={studioReady}
@@ -271,10 +405,13 @@ export default function Home() {
             release={input.release}
           />
           <PerformanceSettings />
+          <p className="layer-note">
+            Drum과 Piano를 겹쳐 연주해요. 녹음은 선택한 악기 레이어만 교체해요.
+          </p>
         </section>
         <TransportControls
           state={transport}
-          ready={studioReady}
+          ready={studioReady && !exporting}
           error={transport.error}
           bpm={bpm}
           setBpm={setBpm}
@@ -285,7 +422,14 @@ export default function Home() {
           record={() => {
             input.releaseAll();
             setNotification('');
-            transport.record({ bpm, metronome, quantize });
+            setUndo(transport.events);
+            setShareUrl('');
+            transport.record({
+              bpm,
+              metronome,
+              quantize,
+              recordPadIds: sounds.map(sound => sound.url),
+            });
           }}
           play={() => transport.play({ bpm, metronome, quantize })}
           stop={() => {
@@ -293,6 +437,112 @@ export default function Home() {
             transport.stop();
           }}
         />
+        <section className="loop-tools" aria-label="루프 도구">
+          <div className="tool-buttons">
+            <button
+              type="button"
+              className="save-button"
+              disabled={running || !undo}
+              onClick={() => {
+                if (undo) replace(undo);
+                setUndo(null);
+                setShareUrl('');
+              }}
+            >
+              되돌리기
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              disabled={
+                running ||
+                !transport.events.some(event =>
+                  sounds.some(sound => sound.url === event.padId),
+                )
+              }
+              onClick={() =>
+                edit(
+                  transport.events.filter(
+                    event => !sounds.some(sound => sound.url === event.padId),
+                  ),
+                )
+              }
+            >
+              선택 레이어 비우기
+            </button>
+            <button
+              type="button"
+              className="save-button"
+              disabled={running || !studioReady || !transport.events.length}
+              onClick={() => void exportAudio()}
+            >
+              {exporting ? 'WAV 만드는 중' : 'WAV 내보내기'}
+            </button>
+            <button
+              type="button"
+              className="save-button"
+              disabled={running || !transport.events.length}
+              onClick={() => {
+                try {
+                  setShareUrl(
+                    window.location.origin +
+                      window.location.pathname +
+                      encodeShare({
+                        name,
+                        instrument,
+                        bpm,
+                        quantize,
+                        metronome,
+                        events: transport.events,
+                      }),
+                  );
+                  setNotification(
+                    '공유 링크를 만들었어요. 아래 링크를 복사해 전달하세요.',
+                  );
+                } catch (error) {
+                  setNotification(
+                    error instanceof Error
+                      ? error.message
+                      : '링크를 만들지 못했어요.',
+                  );
+                }
+              }}
+            >
+              공유 링크 만들기
+            </button>
+          </div>
+          <p>
+            WAV는 현재 볼륨으로 두 레이어를 담아요. 공유 링크에는 음표·템포만
+            담으며 업로드하지 않아요. 링크를 가진 사람은 루프를 열 수 있어요.
+          </p>
+          {shareUrl && (
+            <label>
+              공유 링크
+              <input
+                aria-label="공유 링크"
+                readOnly
+                value={shareUrl}
+                onFocus={e => e.target.select()}
+              />
+              <span>
+                만든 시점의 루프예요. 편집 후에는 링크를 다시 만드세요.
+              </span>
+            </label>
+          )}
+          <LoopEditor
+            sounds={sounds}
+            instrument={instrument}
+            events={transport.events}
+            disabled={running || !studioReady}
+            change={events => {
+              try {
+                edit(events);
+              } catch {
+                setNotification('더 이상 음을 추가할 수 없어요.');
+              }
+            }}
+          />
+        </section>
         <ProjectLibrary
           projects={library.projects}
           currentId={currentId}
@@ -312,7 +562,7 @@ export default function Home() {
         <span>키보드 또는 터치로 연주</span>
         <span>녹음 전 4박 카운트인</span>
       </footer>
-      <p role="status" className="sr-only">
+      <p role="status" className="studio-notification">
         {notification}
       </p>
     </main>
