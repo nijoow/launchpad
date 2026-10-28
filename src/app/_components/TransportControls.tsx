@@ -2,6 +2,7 @@ import type { TransportSnapshot } from '@/lib/loop-transport';
 import {
   BEATS_PER_BAR,
   LOOP_BEATS,
+  LOOP_BARS,
   MAX_BPM,
   MIN_BPM,
   clampBpm,
@@ -73,7 +74,7 @@ export default function TransportControls({
           <span className="note-count">{state.events.length}개 음</span>
         </div>
         <span className="transport-position">
-          {Math.floor(state.beat / BEATS_PER_BAR) + 1} / 4 마디 ·{' '}
+          {Math.floor(state.beat / BEATS_PER_BAR) + 1} / {LOOP_BARS} 마디 ·{' '}
           {Math.floor(state.beat % BEATS_PER_BAR) + 1}박
         </span>
       </div>
@@ -84,14 +85,14 @@ export default function TransportControls({
         aria-valuemax={LOOP_BEATS}
         aria-valuenow={Number(state.beat.toFixed(2))}
         className="beat-track"
-        style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}
+        style={{ gridTemplateColumns: `repeat(${LOOP_BEATS}, minmax(0, 1fr))` }}
       >
         {Array.from({ length: LOOP_BEATS }, (_, beat) => (
           <div
             key={beat}
             className={cn(
               'beat-step',
-              beat % 4 === 0 && 'bar-start',
+              beat % BEATS_PER_BAR === 0 && 'bar-start',
               running && Math.floor(state.beat) === beat ? 'beat-current' : '',
             )}
           />

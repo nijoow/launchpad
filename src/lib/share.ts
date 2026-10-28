@@ -1,7 +1,7 @@
-import { drumSounds, pianoSounds } from '../constant/sound';
+import { allSounds } from '../constant/sound';
 import { parseProject, type ProjectContent, type Project } from './project';
+import { LOOP_BARS } from './timeline';
 
-const samples = [...drumSounds, ...pianoSounds];
 export const MAX_SHARE_LENGTH = 16000;
 
 /** A fragment stays in the browser, never in the HTTP request. No name or identity. */
@@ -10,7 +10,7 @@ export function encodeShare(content: ProjectContent) {
     1,
     content.bpm,
     content.events.map(event => [
-      samples.findIndex(sound => sound.url === event.padId),
+      allSounds.findIndex(sound => sound.url === event.padId),
       event.beat,
     ]),
   ];
@@ -46,11 +46,11 @@ export function decodeShare(hash: string): Project | null {
         !Number.isInteger(event[0])
       )
         throw new Error('Invalid note');
-      return { padId: samples[event[0]]?.url, beat: event[1] };
+      return { padId: allSounds[event[0]]?.url, beat: event[1] };
     });
     return parseProject({
       version: 2,
-      bars: 4,
+      bars: LOOP_BARS,
       id: 'shared-loop',
       name: '공유받은 루프',
       instrument: 'Drum',

@@ -1,4 +1,5 @@
 import type { Project } from '@/lib/project';
+import { soundsByInstrument } from '@/constant/sound';
 import { cn } from '@/utils/cn';
 
 interface Props {
@@ -75,15 +76,14 @@ export default function ProjectLibrary({
               >
                 <span className="library-name">{project.name}</span>
                 <span className="library-meta">
-                  {[
-                    project.events.some(event =>
-                      event.padId.startsWith('/audio/drum/'),
-                    ) && 'Drum',
-                    project.events.some(event =>
-                      event.padId.startsWith('/audio/piano/'),
-                    ) && 'Piano',
-                  ]
-                    .filter(Boolean)
+                  {(['Drum', 'Piano'] as const)
+                    .filter(instrument =>
+                      project.events.some(event =>
+                        soundsByInstrument[instrument].some(
+                          sound => sound.url === event.padId,
+                        ),
+                      ),
+                    )
                     .join(' + ')}{' '}
                   · {project.bpm} BPM · {project.events.length}개 음
                 </span>

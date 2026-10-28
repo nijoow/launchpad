@@ -1,6 +1,7 @@
 import {
   BEATS_PER_BAR,
   LOOP_BEATS,
+  MAX_EVENTS,
   clampBpm,
   occurrences,
   recordedBeat,
@@ -96,7 +97,7 @@ export class LoopTransport {
       notice: this.notice,
       countIn:
         this.status === 'countin'
-          ? Math.min(4, Math.max(1, Math.ceil(-elapsed)))
+          ? Math.min(BEATS_PER_BAR, Math.max(1, Math.ceil(-elapsed)))
           : 0,
     });
   }
@@ -175,7 +176,7 @@ export class LoopTransport {
       this.options.bpm,
       this.options.quantize,
     );
-    if (beat === null || this.events.length >= 4096) return;
+    if (beat === null || this.events.length >= MAX_EVENTS) return;
     if (this.options.recordPadIds && !this.options.recordPadIds.includes(padId))
       return;
     // Quantization can align two quick taps to one step; play it only once in the loop.

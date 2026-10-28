@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  drumSounds,
-  pianoSounds,
+  allSounds,
+  soundsByInstrument,
   type Sound,
   type Instrument,
 } from '@/constant/sound';
@@ -12,7 +12,7 @@ import useLoopTransport from '@/hooks/useLoopTransport';
 import useProjects from '@/hooks/useProjects';
 import { decodeShare, encodeShare } from '@/lib/share';
 import { renderWav } from '@/lib/wav';
-import type { NoteEvent } from '@/lib/timeline';
+import { LOOP_BARS, type NoteEvent } from '@/lib/timeline';
 import LoopEditor from './_components/LoopEditor';
 import { contentFingerprint, type Project } from '@/lib/project';
 import { rememberProject } from '@/lib/project-repository';
@@ -24,11 +24,9 @@ import PerformanceSettings from './_components/PerformanceSettings';
 import TransportControls from './_components/TransportControls';
 import ProjectLibrary from './_components/ProjectLibrary';
 
-const allSounds = [...drumSounds, ...pianoSounds];
-
 export default function Home() {
   const [instrument, setInstrument] = useState<Instrument>('Drum');
-  const sounds = instrument === 'Piano' ? pianoSounds : drumSounds;
+  const sounds = soundsByInstrument[instrument];
   const { engine, ready, error, setError, retry } = useAudioEngine(allSounds);
   const transport = useLoopTransport(engine);
   const { capture, replace } = transport;
@@ -155,7 +153,7 @@ export default function Home() {
     const now = Date.now();
     const saved = await library.save({
       version: 2,
-      bars: 4,
+      bars: LOOP_BARS,
       id: currentId ?? crypto.randomUUID(),
       name: name.trim() || '이름 없는 루프',
       instrument,
@@ -359,7 +357,7 @@ export default function Home() {
                   {mode} ·{' '}
                   {
                     transport.events.filter(event =>
-                      (mode === 'Drum' ? drumSounds : pianoSounds).some(
+                      soundsByInstrument[mode].some(
                         sound => sound.url === event.padId,
                       ),
                     ).length

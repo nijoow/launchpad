@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react';
 import type { Instrument, Sound } from '@/constant/sound';
-import type { NoteEvent } from '@/lib/timeline';
+import {
+  LOOP_BARS,
+  MAX_EVENTS,
+  STEPS_PER_BAR,
+  STEPS_PER_BEAT,
+  type NoteEvent,
+} from '@/lib/timeline';
 import { toggleStep } from '@/lib/loop-edit';
 
 export default function LoopEditor({
@@ -23,7 +29,7 @@ export default function LoopEditor({
       new Set(
         events
           .filter(event => event.padId === selected.url)
-          .map(event => Math.floor(event.beat * 4)),
+          .map(event => Math.floor(event.beat * STEPS_PER_BEAT)),
       ),
     [events, selected.url],
   );
@@ -45,12 +51,12 @@ export default function LoopEditor({
         </select>
       </label>
       <p>한 칸은 16분음표예요. 눌러 추가하거나 지워요.</p>
-      {[0, 1, 2, 3].map(bar => (
+      {Array.from({ length: LOOP_BARS }, (_, bar) => (
         <div className="editor-bar" key={bar}>
           <span>{bar + 1}마디</span>
           <div className="editor-steps">
-            {Array.from({ length: 16 }, (_, index) => {
-              const step = bar * 16 + index;
+            {Array.from({ length: STEPS_PER_BAR }, (_, index) => {
+              const step = bar * STEPS_PER_BAR + index;
               const active = activeSteps.has(step);
               return (
                 <button
@@ -58,7 +64,9 @@ export default function LoopEditor({
                   key={step}
                   aria-label={`${bar + 1}마디 ${index + 1}칸`}
                   aria-pressed={active}
-                  disabled={disabled || (!active && events.length >= 4096)}
+                  disabled={
+                    disabled || (!active && events.length >= MAX_EVENTS)
+                  }
                   onClick={() => change(toggleStep(events, selected.url, step))}
                 >
                   {index + 1}
