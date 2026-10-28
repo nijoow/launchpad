@@ -282,3 +282,11 @@ export const drumSounds: Sound[] = [
     keyCode: ['3'],
   },
 ];
+
+export const soundsByInstrument: Record<Instrument, Sound[]> = {
+  Drum: drumSounds,
+  Piano: pianoSounds,
+};
+
+// Share format v1 stores these indices: keep Drum first, then Piano, in this order.
+export const allSounds = [...drumSounds, ...pianoSounds];

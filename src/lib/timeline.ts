@@ -1,6 +1,10 @@
 export const BEATS_PER_BAR = 4;
 export const LOOP_BARS = 4;
 export const LOOP_BEATS = BEATS_PER_BAR * LOOP_BARS;
+export const STEPS_PER_BEAT = 4;
+export const STEPS_PER_BAR = BEATS_PER_BAR * STEPS_PER_BEAT;
+export const LOOP_STEPS = LOOP_BEATS * STEPS_PER_BEAT;
+export const MAX_EVENTS = 4096;
 export const MIN_BPM = 60;
 export const MAX_BPM = 180;
 
@@ -25,7 +29,10 @@ export function recordedBeat(
   if (beat < 0 || beat >= LOOP_BEATS) return null;
   // The final hit belongs to the final step, never to the beginning of this take.
   return quantize
-    ? Math.min(LOOP_BEATS - 0.25, Math.round(beat * 4) / 4)
+    ? Math.min(
+        LOOP_BEATS - 1 / STEPS_PER_BEAT,
+        Math.round(beat * STEPS_PER_BEAT) / STEPS_PER_BEAT,
+      )
     : beat;
 }
 

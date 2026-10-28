@@ -1,13 +1,18 @@
-import { drumSounds, pianoSounds, type Instrument } from '../constant/sound';
+import {
+  allSounds,
+  soundsByInstrument,
+  type Instrument,
+} from '../constant/sound';
 import {
   LOOP_BARS,
   LOOP_BEATS,
   MIN_BPM,
   MAX_BPM,
+  MAX_EVENTS,
   type NoteEvent,
 } from './timeline';
 
-export const MAX_EVENTS = 4096;
+export { MAX_EVENTS } from './timeline';
 export interface ProjectContent {
   name: string;
   instrument: Instrument;
@@ -19,7 +24,7 @@ export interface ProjectContent {
 export interface Project extends ProjectContent {
   version: 1 | 2;
   id: string;
-  bars: 4;
+  bars: typeof LOOP_BARS;
   createdAt: number;
   updatedAt: number;
 }
@@ -74,12 +79,9 @@ export function parseProject(value: unknown): Project | null {
   if (!Array.isArray(item.events) || item.events.length > MAX_EVENTS)
     return null;
   const allowed = new Set(
-    (item.version === 2
-      ? [...pianoSounds, ...drumSounds]
-      : item.instrument === 'Piano'
-        ? pianoSounds
-        : drumSounds
-    ).map(sound => sound.url),
+    (item.version === 2 ? allSounds : soundsByInstrument[item.instrument]).map(
+      sound => sound.url,
+    ),
   );
   const events: NoteEvent[] = [];
   for (const value of item.events) {
@@ -99,7 +101,7 @@ export function parseProject(value: unknown): Project | null {
   return {
     version: item.version,
     id: item.id,
-    bars: 4,
+    bars: LOOP_BARS,
     name: item.name.trim(),
     instrument: item.instrument,
     bpm: item.bpm,

@@ -1,5 +1,5 @@
 import type { AudioEngine } from './audio-engine';
-import type { NoteEvent } from './timeline';
+import { LOOP_BEATS, type NoteEvent } from './timeline';
 
 /** Fold sample tails across the loop boundary, then prevent digital clipping. */
 export function loopChannels(channels: Float32Array[], frames: number) {
@@ -58,7 +58,7 @@ export async function renderWav(
   volume: number,
 ) {
   const rate = 44100;
-  const frames = Math.round(((16 * 60) / bpm) * rate);
+  const frames = Math.round(((LOOP_BEATS * 60) / bpm) * rate);
   const buffers = events.map(event => {
     const buffer = engine.getSample(event.padId);
     if (!buffer) throw new Error('소리를 불러온 뒤 다시 내보내 주세요.');
