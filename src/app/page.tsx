@@ -23,6 +23,7 @@ import PadBoard from './_components/PadBoard';
 import PerformanceSettings from './_components/PerformanceSettings';
 import TransportControls from './_components/TransportControls';
 import ProjectLibrary from './_components/ProjectLibrary';
+import LoopOverview from './_components/LoopOverview';
 
 export default function Home() {
   const [instrument, setInstrument] = useState<Instrument>('Drum');
@@ -239,7 +240,7 @@ export default function Home() {
         <h1>
           launchpad<span>.</span>
         </h1>
-        <span className="studio-signature">by nijoow</span>
+        <span className="studio-signature">연주하고, 4마디로 남기기</span>
       </header>
       {incoming && (
         <section className="share-incoming">
@@ -335,7 +336,7 @@ export default function Home() {
             </button>
           </div>
         </div>
-        <section className="performance">
+        <section className="performance" aria-label="연주 콘솔">
           <div className="performance-heading">
             <div
               className="instrument-tabs"
@@ -377,7 +378,7 @@ export default function Home() {
           )}
           <button
             type="button"
-            className="text-button"
+            className="audio-start text-button"
             disabled={!ready || running}
             onClick={() => {
               void engine.current
@@ -390,7 +391,7 @@ export default function Home() {
                 );
             }}
           >
-            소리 시작 · 모바일에서 먼저 눌러 주세요
+            소리 시작
           </button>
           <PadBoard
             instrument={instrument}
@@ -403,38 +404,58 @@ export default function Home() {
             release={input.release}
           />
           <PerformanceSettings />
-          <p className="layer-note">
-            Drum과 Piano를 겹쳐 연주해요. 녹음은 선택한 악기 레이어만 교체해요.
-          </p>
+          <details className="performance-help">
+            <summary>연주 도움말</summary>
+            <p>
+              Drum과 Piano를 겹쳐 연주할 수 있어요. 녹음하면 선택한 악기만
+              교체돼요. 모바일에서 소리가 나지 않으면 ‘소리 시작’을 눌러 주세요.
+            </p>
+          </details>
         </section>
-        <TransportControls
-          state={transport}
-          ready={studioReady && !exporting}
-          error={transport.error}
-          bpm={bpm}
-          setBpm={setBpm}
-          metronome={metronome}
-          setMetronome={setMetronome}
-          quantize={quantize}
-          setQuantize={setQuantize}
-          record={() => {
-            input.releaseAll();
-            setNotification('');
-            setUndo(transport.events);
-            setShareUrl('');
-            transport.record({
-              bpm,
-              metronome,
-              quantize,
-              recordPadIds: sounds.map(sound => sound.url),
-            });
-          }}
-          play={() => transport.play({ bpm, metronome, quantize })}
-          stop={() => {
-            input.releaseAll();
-            transport.stop();
-          }}
-        />
+        <div className="session-panel">
+          <div className="section-caption">
+            <span>루프 녹음</span>
+            <span>드럼 + 피아노</span>
+          </div>
+          <TransportControls
+            state={transport}
+            ready={studioReady && !exporting}
+            error={transport.error}
+            bpm={bpm}
+            setBpm={setBpm}
+            metronome={metronome}
+            setMetronome={setMetronome}
+            quantize={quantize}
+            setQuantize={setQuantize}
+            record={() => {
+              input.releaseAll();
+              setNotification('');
+              setUndo(transport.events);
+              setShareUrl('');
+              transport.record({
+                bpm,
+                metronome,
+                quantize,
+                recordPadIds: sounds.map(sound => sound.url),
+              });
+            }}
+            play={() => transport.play({ bpm, metronome, quantize })}
+            stop={() => {
+              input.releaseAll();
+              transport.stop();
+            }}
+          />
+          <LoopOverview
+            events={transport.events}
+            beat={transport.beat}
+            running={transport.status !== 'idle'}
+            instrument={instrument}
+          />
+          <p className="session-tip">
+            녹음을 누르면 네 박자를 센 뒤 시작합니다. 다시 녹음하면 선택한
+            악기만 바뀝니다.
+          </p>
+        </div>
         <section className="loop-tools" aria-label="루프 도구">
           <div className="tool-buttons">
             <button
@@ -509,10 +530,13 @@ export default function Home() {
               공유 링크 만들기
             </button>
           </div>
-          <p>
-            WAV는 현재 볼륨으로 두 레이어를 담아요. 공유 링크에는 음표·템포만
-            담으며 업로드하지 않아요. 링크를 가진 사람은 루프를 열 수 있어요.
-          </p>
+          <details className="export-help">
+            <summary>저장·공유 안내</summary>
+            <p>
+              WAV는 현재 볼륨으로 두 레이어를 담아요. 공유 링크에는 음표·템포만
+              담으며 업로드하지 않아요. 링크를 가진 사람은 루프를 열 수 있어요.
+            </p>
+          </details>
           {shareUrl && (
             <label>
               공유 링크

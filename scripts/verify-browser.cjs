@@ -93,7 +93,7 @@ const out = process.env.VERIFY_OUTPUT || '/tmp/launchpad-verification';
       ['suspended'],
     );
     await page
-      .getByRole('button', { name: '소리 시작 · 모바일에서 먼저 눌러 주세요' })
+      .getByRole('button', { name: '소리 시작', exact: true })
       .tap();
     await page.getByText('소리가 준비됐어요. 패드를 연주해 주세요.').waitFor();
     assert.deepEqual(
