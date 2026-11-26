@@ -1,17 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { pianoSounds } from '../src/constant/sound';
 import {
   accompaniment,
   BEAT_SECONDS,
-  gameSounds,
   melody,
   SONG_BEATS,
 } from '../src/lib/ode-to-joy';
 import { PianoRound } from '../src/lib/piano-round';
 
-test('the four-bar score fits the visible piano octave and ends together with the backing', () => {
+test('the four-bar score uses playable pads and ends together with the backing', () => {
   assert.equal(melody.length, 15);
-  assert.ok(melody.every(note => gameSounds.includes(note.sound)));
+  assert.ok(melody.every(note => pianoSounds.includes(note.sound)));
   for (const note of [...melody, ...accompaniment]) {
     assert.ok(note.length > 0 && note.beat + note.length <= SONG_BEATS);
     assert.ok(note.sound.url.endsWith('.wav'));
@@ -36,7 +36,7 @@ test('four count-in beats lead into distinct repeated notes, all scoreable on th
 
 test('wrong, early and duplicate presses never consume a later note; a missed beat permits re-entry', () => {
   const round = new PianoRound(0);
-  round.press(gameSounds[0].url, 0);
+  round.press(pianoSounds[0].url, 0);
   round.press(melody[0].sound.url, 0.1);
   round.press(melody[0].sound.url, 0.11);
   assert.equal(round.view(0.12).wrong, 2);

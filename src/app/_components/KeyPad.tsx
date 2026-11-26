@@ -2,6 +2,13 @@ import type { Sound } from '@/constant/sound';
 import { cn } from '@/utils/cn';
 import { memo, useEffect, useRef } from 'react';
 
+const strikeLights = [
+  '190, 242, 100',
+  '249, 168, 212',
+  '125, 211, 252',
+  '216, 180, 254',
+];
+
 interface KeyPadProps {
   sound: Sound;
   active: boolean;
@@ -25,6 +32,14 @@ export default memo(function KeyPad({
   octave,
   cueProgress,
 }: KeyPadProps) {
+  const button = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (active) {
+      const color =
+        strikeLights[Math.floor(Math.random() * strikeLights.length)];
+      button.current?.style.setProperty('--strike-light', color);
+    }
+  }, [active]);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(
     () => () => {
@@ -34,6 +49,7 @@ export default memo(function KeyPad({
   );
   return (
     <button
+      ref={button}
       type="button"
       disabled={disabled}
       aria-label={`${sound.name}${octave ? ` ${octave}` : ''}, 단축키 ${sound.keyCode[0]}`}

@@ -17,7 +17,7 @@ interface PadBoardProps {
   ready: boolean;
   active: Set<string>;
   playing?: Set<string>;
-  octave?: number;
+  matrix?: boolean;
   cue?: { url: string; progress: number } | null;
   showPitch: boolean;
   showKeyboard: boolean;
@@ -30,7 +30,7 @@ export default function PadBoard({
   ready,
   active,
   playing,
-  octave: selectedOctave,
+  matrix = false,
   cue,
   showPitch,
   showKeyboard,
@@ -60,24 +60,24 @@ export default function PadBoard({
         <div className="drum-grid">
           {drumSounds.map(sound => renderPad(sound))}
         </div>
+      ) : matrix ? (
+        <div className="piano-matrix">
+          {octaves.flatMap(octave =>
+            octave.sounds.map(sound => renderPad(sound, octave.name)),
+          )}
+        </div>
       ) : (
         <div className="piano-groups">
-          {octaves
-            .filter(
-              group =>
-                selectedOctave === undefined ||
-                group.name === `C${selectedOctave}`,
-            )
-            .map(octave => (
-              <div key={octave.name}>
-                <div className="octave-label">
-                  <span>{octave.label}</span>
-                </div>
-                <div className="piano-octave-grid">
-                  {octave.sounds.map(sound => renderPad(sound, octave.name))}
-                </div>
+          {octaves.map(octave => (
+            <div key={octave.name}>
+              <div className="octave-label">
+                <span>{octave.label}</span>
               </div>
-            ))}
+              <div className="piano-octave-grid">
+                {octave.sounds.map(sound => renderPad(sound, octave.name))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </section>

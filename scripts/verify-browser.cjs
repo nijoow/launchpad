@@ -283,6 +283,32 @@ const out = process.env.VERIFY_OUTPUT || '/tmp/launchpad-verification';
     }
     check('390px and 360px mobile viewport', 'no horizontal document overflow');
     await fresh.close();
+    await page.goto(new URL('/', base).href);
+    await page.locator('.piano-matrix [data-pad]:enabled').first().waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    const matrix = () => page.locator('.piano-matrix [data-pad]').evaluateAll(pads =>
+      pads.map(pad => {
+        const { x, y, width, height } = pad.getBoundingClientRect();
+        return { id: pad.dataset.pad, x, y, width, height };
+      }),
+    );
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.getByRole('button', { name: '자유 연주', exact: true }).click();
+      const board = await matrix();
+      assert.equal(board.length, 36);
+      assert.equal(new Set(board.map(pad => Math.round(pad.x))).size, 6);
+      assert.equal(new Set(board.map(pad => Math.round(pad.y))).size, 6);
+      assert(board.every((pad, index) => pad.id === `/audio/piano/piano${48 + index}.wav` &&
+        Math.abs(pad.width - pad.height) < 1 && pad.x >= 0 && pad.x + pad.width <= width));
+      await page.getByRole('button', { name: '노트 게임', exact: true }).click();
+      assert.deepEqual(await matrix(), board);
+      await page.getByRole('button', { name: '게임 시작', exact: true }).click();
+      await page.getByText('준비 · 4', { exact: true }).waitFor();
+      assert.deepEqual(await matrix(), board);
+      await page.getByRole('button', { name: '중지', exact: true }).click();
+    }
+    check('6×6 piano matrix', 'All 36 square pads keep their order and positions across modes and countdown at four viewport sizes.');
     assert.deepEqual(evidence.errors, []);
     assert.deepEqual(evidence.failures, []);
     check('browser errors and HTTP failures', {
