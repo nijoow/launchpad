@@ -69,7 +69,7 @@ const out = process.env.VERIFY_OUTPUT || '/tmp/launchpad-verification';
     );
   };
   try {
-    await page.goto(base);
+    await page.goto(new URL('/studio', base).href);
     await ready(page);
     const before = await page.evaluate(() =>
       window.__audio.contexts.map(c => c.state),
