@@ -74,15 +74,33 @@ export class AudioEngine {
     return promise;
   }
 
-  playSample(url: string, time = this.currentTime) {
+  playSample(
+    url: string,
+    time = this.currentTime,
+    backing?: { gain: number; length: number },
+  ) {
     const buffer = this.buffers.get(url);
     if (!buffer || this.disposed) return false;
     const context = this.getContext();
     const source = context.createBufferSource();
     source.buffer = buffer;
-    source.connect(this.output!);
-    this.track(source);
-    source.start(Math.max(time, context.currentTime));
+    const start = Math.max(time, context.currentTime);
+    if (backing) {
+      const end = start + backing.length;
+      const envelope = context.createGain();
+      envelope.gain.setValueAtTime(backing.gain, start);
+      envelope.gain.setValueAtTime(backing.gain, Math.max(start, end - 0.035));
+      envelope.gain.linearRampToValueAtTime(0, end);
+      source.connect(envelope);
+      envelope.connect(this.output!);
+      this.track(source, () => envelope.disconnect());
+      source.start(start);
+      source.stop(end);
+    } else {
+      source.connect(this.output!);
+      this.track(source);
+      source.start(start);
+    }
     return true;
   }
 

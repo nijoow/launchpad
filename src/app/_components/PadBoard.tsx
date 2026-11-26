@@ -17,6 +17,8 @@ interface PadBoardProps {
   ready: boolean;
   active: Set<string>;
   playing?: Set<string>;
+  octave?: number;
+  cue?: { url: string; progress: number } | null;
   showPitch: boolean;
   showKeyboard: boolean;
   press: (source: string, sound: Sound) => void;
@@ -28,6 +30,8 @@ export default function PadBoard({
   ready,
   active,
   playing,
+  octave: selectedOctave,
+  cue,
   showPitch,
   showKeyboard,
   press,
@@ -39,6 +43,7 @@ export default function PadBoard({
       sound={sound}
       octave={octave}
       active={active.has(sound.url) || !!playing?.has(sound.url)}
+      cueProgress={cue?.url === sound.url ? cue.progress : undefined}
       disabled={!ready}
       showPitch={showPitch}
       showKeyboard={showKeyboard}
@@ -57,16 +62,22 @@ export default function PadBoard({
         </div>
       ) : (
         <div className="piano-groups">
-          {octaves.map(octave => (
-            <div key={octave.name}>
-              <div className="octave-label">
-                <span>{octave.label}</span>
+          {octaves
+            .filter(
+              group =>
+                selectedOctave === undefined ||
+                group.name === `C${selectedOctave}`,
+            )
+            .map(octave => (
+              <div key={octave.name}>
+                <div className="octave-label">
+                  <span>{octave.label}</span>
+                </div>
+                <div className="piano-octave-grid">
+                  {octave.sounds.map(sound => renderPad(sound, octave.name))}
+                </div>
               </div>
-              <div className="piano-octave-grid">
-                {octave.sounds.map(sound => renderPad(sound, octave.name))}
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
     </section>

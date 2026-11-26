@@ -4,7 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Nijoow LaunchPad',
   description:
-    '피아노와 드럼을 연주하고, 4마디 루프를 녹음해 내 기기에 저장하세요.',
+    '피아노 패드를 자유롭게 연주하거나, 박자에 맞춰 노트를 눌러 멜로디를 완성하세요.',
 };
 
 export default function RootLayout({

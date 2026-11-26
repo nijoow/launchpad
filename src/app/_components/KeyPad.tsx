@@ -11,6 +11,7 @@ interface KeyPadProps {
   press: (source: string, sound: Sound) => void;
   release: (source: string) => void;
   octave?: string;
+  cueProgress?: number;
 }
 
 export default memo(function KeyPad({
@@ -22,6 +23,7 @@ export default memo(function KeyPad({
   press,
   release,
   octave,
+  cueProgress,
 }: KeyPadProps) {
   const timer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(
@@ -70,6 +72,14 @@ export default memo(function KeyPad({
         active && 'pad-active',
       )}
     >
+      {cueProgress !== undefined && (
+        <span
+          aria-hidden="true"
+          className="note-cue"
+          data-on-beat={cueProgress >= 0.94}
+          style={{ transform: `scale(${0.38 + cueProgress * 0.62})` }}
+        />
+      )}
       {showPitch && <span className="pad-name">{sound.name}</span>}
       {showKeyboard && <span className="pad-shortcut">{sound.keyCode[0]}</span>}
     </button>
