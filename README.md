@@ -25,6 +25,6 @@ node .yarn/releases/yarn-4.3.1.cjs dev
 
 ## 피아노 모드
 
-첫 화면에서 세 옥타브를 자유롭게 연주하거나, 노트 게임에서 박자에 맞춰 건반을 누를 수 있습니다. 게임은 베토벤 〈환희의 송가〉 첫 네 마디를 사용합니다. Peter Chubb의 [Mutopia 퍼블릭 도메인 악보](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528)를 다장조로 옮겨 소프라노는 연주용 노트, 나머지 세 성부는 반주로 사용합니다.
+자유 연주와 노트 게임은 같은 6×6 보드를 사용합니다. 세 옥타브의 음과 단축키 위치를 유지하며, 게임에서는 다음에 누를 패드에 테두리가 나타납니다. 게임은 베토벤 〈환희의 송가〉 첫 네 마디를 사용합니다. Peter Chubb의 [Mutopia 퍼블릭 도메인 악보](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528)를 다장조로 옮겨 소프라노는 연주용 노트, 나머지 세 성부는 반주로 사용합니다.
 
 기존 녹음과 저장한 루프는 `/studio`에서 열 수 있습니다. 기존 공유 링크도 같은 스튜디오로 연결됩니다.

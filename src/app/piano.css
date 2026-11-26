@@ -1,95 +1,256 @@
-.piano-room .studio-heading {
-  margin-bottom: 18px;
+@font-face {
+  font-family: 'Jua';
+  src: url('/fonts/jua/jua-regular.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
 }
-.piano-room .studio-signature:hover {
-  color: var(--text);
+
+.piano-page {
+  --case: #29292c;
+  --paper: #f2f0e9;
+  --soft: #bfbeb8;
+  --lamp: #bef264;
+  min-height: 100svh;
+  padding: clamp(8px, 2.8vh, 30px) 12px;
+  background: #39393c;
+  color: var(--paper);
+  font-family: 'Jua', 'Apple SD Gothic Neo', sans-serif;
 }
+.piano-room {
+  width: min(100%, 800px);
+  margin: auto;
+  padding: 16px clamp(20px, 4vw, 52px) 0;
+  background: var(--case);
+  border: 1px solid #444447;
+  border-radius: 17px;
+  box-shadow:
+    inset 0 1px #555558,
+    0 3px 0 #1b1b1d,
+    0 10px 24px #17171940;
+}
+.piano-room .studio-heading,
 .piano-toolbar,
 .song-heading,
 .song-hint {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
 }
-.piano-toolbar {
-  border-block: 1px solid var(--line);
+.piano-room .studio-heading {
+  margin: 0 0 12px;
 }
-.piano-room .piano-stage {
-  padding: 26px 0;
+.piano-room .studio-heading h1 {
+  color: var(--paper);
+  font:
+    400 clamp(30px, 4vw, 40px) / 1 'Jua',
+    sans-serif;
+  letter-spacing: -0.05em;
 }
-.piano-room .octave-label {
-  font-size: 12px;
+.piano-room .studio-heading h1 span {
+  color: var(--lamp);
 }
-.piano-room .piano-stage .pad-name {
-  font-size: 15px;
-}
-.piano-room .piano-stage .pad-shortcut {
-  font-size: 11px;
-  right: 7px;
-}
-.song-panel {
-  margin-top: 24px;
-}
-.song-heading h2 {
-  font-size: 23px;
-  font-weight: 600;
-}
-.song-meta,
-.song-hint {
-  color: var(--muted);
+.piano-room .studio-signature {
+  color: var(--soft);
   font-size: 13px;
 }
+.piano-room .studio-signature:hover {
+  color: var(--paper);
+}
+.piano-toolbar {
+  padding: 6px 0 12px;
+}
+.piano-room .instrument-tabs {
+  gap: 3px;
+  padding: 3px;
+  border-radius: 8px;
+  background: #1a1a1c;
+  box-shadow: inset 0 1px 3px #111;
+}
+.piano-room .instrument-tab {
+  padding: 0 16px;
+  min-height: 36px;
+  border-radius: 5px;
+  color: #c1c0bc;
+  font-size: 15px;
+}
+.piano-room .instrument-tab.selected {
+  background: #47474a;
+  color: #fff;
+  box-shadow:
+    inset 0 1px #67676a,
+    0 1px 2px #101010;
+}
+.piano-room .instrument-tab.selected::after {
+  content: none;
+}
+.piano-room .audio-status {
+  color: var(--soft);
+  font-size: 13px;
+}
+.piano-room .status-light.ready {
+  background: var(--lamp);
+  box-shadow: 0 0 6px #bef26470;
+}
+.piano-readout {
+  min-height: 108px;
+  padding: 10px 16px;
+  border: 1px solid #41423f;
+  border-radius: 7px;
+  background: #202121;
+  box-shadow: inset 0 2px 4px #1116;
+}
+.song-heading h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--paper);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+.song-meta,
+.song-status,
+.song-hint,
+.note-range {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--soft);
+}
+.note-range,
+.song-hint {
+  color: #c6dfa5;
+}
+.note-range {
+  white-space: nowrap;
+}
 .song-meta {
-  margin-top: 4px;
+  margin-top: 1px;
 }
 .song-status {
-  margin-top: 16px;
-  font-size: 14px;
+  margin-top: 3px;
+}
+.free-panel .song-status {
+  margin-top: 6px;
 }
 .song-hint {
-  min-height: 22px;
-  margin-top: 4px;
+  min-height: 17px;
 }
-.song-panel {
-  min-height: 130px;
+.piano-room .song-action {
+  flex: none;
+  padding: 0 15px;
+  min-width: 82px;
+  min-height: 36px;
+  color: #262a21;
+  background: #d3e7b6;
+  border: 1px solid #e0ebd3;
+  border-bottom: 3px solid #9eae86;
+  border-radius: 5px;
 }
-.song-action {
-  min-width: 96px;
-  background: var(--accent);
-  color: #17253c;
-  border: none;
+.piano-room .piano-stage {
+  padding: 16px 0;
+}
+.piano-matrix {
+  display: grid;
+  width: min(100%, clamp(420px, calc(100svh - 350px), 672px));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, 1.3vw, 16px);
+}
+.piano-room .piano-matrix .pad {
+  aspect-ratio: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.piano-matrix .pad.pad-active {
+  --pad-light: var(--strike-light, 190, 242, 100);
+  box-shadow:
+    inset 0 0 20px 20px rgb(var(--pad-light)),
+    0 0 13px 10px rgba(var(--pad-light), 0.4);
+}
+.piano-room .piano-matrix .pad-name {
+  font-size: clamp(15px, 2vw, 21px);
+  font-weight: 400;
+}
+.piano-room .piano-matrix .pad-shortcut {
+  right: 5%;
+  bottom: 3%;
+  font:
+    400 clamp(10px, 1.4vw, 15px) / 1.1 'Jua',
+    sans-serif;
+  opacity: 0.83;
+}
+.piano-matrix .pad-shortcut::before {
+  content: '『';
+}
+.piano-matrix .pad-shortcut::after {
+  content: '』';
+}
+.piano-matrix .pad-active :is(.pad-name, .pad-shortcut) {
+  opacity: 0;
+}
+.piano-room .performance-settings {
+  border-top: 1px solid #48484a;
+  padding: 12px 0;
+  color: #d0cfca;
+  font-size: 13px;
+}
+.piano-room input {
+  accent-color: #bed79c;
+}
+.piano-room .volume-value {
+  font: inherit;
+}
+.piano-room :focus-visible {
+  outline: 2px solid #c3f1ff;
+  outline-offset: 3px;
 }
 .note-cue {
   position: absolute;
   inset: 2px;
   border-radius: inherit;
-  border: 3px solid #124a94;
+  border: 3px solid #14566a;
   box-shadow:
-    0 0 0 2px #ebf4ff,
-    inset 0 0 0 1px #ebf4ff;
+    0 0 0 2px #c9f8ff,
+    inset 0 0 0 1px #dcfaff;
   pointer-events: none;
 }
 .note-cue[data-on-beat='true'] {
-  border-color: #06234b;
-  background: rgb(80 160 255 / 18%);
+  border-color: #07303f;
+  background: rgb(110 220 240 / 25%);
 }
 @media (prefers-reduced-motion: reduce) {
   .note-cue {
     transform: none !important;
   }
 }
-@media (max-width: 700px) {
-  .piano-room .instrument-tabs {
-    gap: 18px;
+@media (max-width: 600px) {
+  .piano-page {
+    padding: 8px 4px;
+  }
+  .piano-room {
+    padding: 14px clamp(8px, 2.5vw, 16px) 0;
+    border-radius: 12px;
+  }
+  .piano-room .studio-heading h1 {
+    font-size: 31px;
+  }
+  .piano-room .instrument-tab {
+    padding: 0 12px;
   }
   .piano-room .audio-status {
-    font-size: 11px;
+    font-size: 12px;
   }
   .piano-room .piano-stage {
-    padding: 18px 0;
+    padding: 14px 0;
   }
-  .song-panel {
-    margin-top: 18px;
+  .piano-matrix {
+    gap: clamp(4px, 1.65vw, 8px);
+  }
+  .piano-readout {
+    padding: 10px 12px;
+    min-height: 108px;
   }
 }

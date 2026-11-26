@@ -1,12 +1,10 @@
 import { pianoSounds } from '../constant/sound';
 
 // Beethoven, Ode to Joy, bars 1–4. Peter Chubb's public-domain SATB edition,
-// transposed from G to C so the melody fits on one row of piano pads.
+// transposed from G to C. The melody is played in the top octave.
 // https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528
 export const BEAT_SECONDS = 60 / 100;
 export const SONG_BEATS = 16;
-export const GAME_OCTAVE = 5;
-export const gameSounds = pianoSounds.slice(24, 36);
 
 function voice(pitches: number[], beats: number[]) {
   return pitches.map((midi, index) => ({
