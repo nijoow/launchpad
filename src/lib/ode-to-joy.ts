@@ -35,3 +35,7 @@ export const accompaniment = [
     backingBeats,
   ),
 ];
+
+export const songSamples = Array.from(
+  new Set([...melody, ...accompaniment].map(note => note.sound.url)),
+);

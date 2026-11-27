@@ -4,7 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export default function useAudioEngine(sounds: Sound[]) {
   const engine = useRef<AudioEngine | null>(null);
-  const [loadedSounds, setLoadedSounds] = useState<Sound[] | null>(null);
+  const [available, setAvailable] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
 
@@ -32,30 +35,36 @@ export default function useAudioEngine(sounds: Sound[]) {
     let cancelled = false;
     setError('');
     const audio = engine.current!;
-    audio.stopAll();
-    audio
-      .loadSamples(sounds.map(sound => sound.url))
-      .then(() => {
-        if (!cancelled) setLoadedSounds(sounds);
-      })
-      .catch(() => {
-        if (!cancelled)
-          setError('소리를 불러오지 못했어요. 다시 시도해 주세요.');
-      });
+    setFailed(new Set());
+    for (const { url } of sounds) {
+      void audio.loadSample(url).then(
+        () => {
+          if (!cancelled)
+            setAvailable(previous =>
+              previous.has(url) ? previous : new Set(previous).add(url),
+            );
+        },
+        () => {
+          if (!cancelled) setFailed(previous => new Set(previous).add(url));
+        },
+      );
+    }
     return () => {
       cancelled = true;
     };
   }, [sounds, attempt]);
 
   const retry = useCallback(() => {
-    setLoadedSounds(null);
     setAttempt(value => value + 1);
   }, []);
 
   return {
     engine,
-    ready: loadedSounds === sounds && !error,
-    error,
+    ready: !error && sounds.every(sound => available.has(sound.url)),
+    available,
+    failed,
+    playbackError: error,
+    error: error || (failed.size ? '일부 음원을 불러오지 못했어요.' : ''),
     setError,
     retry,
   };

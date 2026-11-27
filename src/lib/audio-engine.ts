@@ -50,7 +50,7 @@ export class AudioEngine {
     await Promise.all(urls.map(url => this.loadSample(url)));
   }
 
-  private loadSample(url: string): Promise<void> {
+  async loadSample(url: string): Promise<void> {
     if (this.disposed)
       return Promise.reject(new Error('Audio engine is closed'));
     if (this.buffers.has(url)) return Promise.resolve();

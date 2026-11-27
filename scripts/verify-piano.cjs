@@ -47,6 +47,50 @@ async function verifySettings(page) {
   assert.equal(await page.evaluate(() => window.sampleStarts), 0);
 }
 
+async function verifyPartialAudio(page) {
+  // B5 is unused; C4 belongs only to the accompaniment; E5 is a melody note.
+  for (const midi of [83, 60, 76]) {
+    const path = `**/audio/piano/piano${midi}.wav`;
+    await page.route(path, route => route.abort());
+    await page.goto(base);
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-pad]:enabled').length === 35,
+    );
+    assert.equal(await page.locator('[data-pad]').count(), 36);
+    assert.equal(
+      await page.locator(`[data-pad$="piano${midi}.wav"]`).isDisabled(),
+      true,
+    );
+    await page.locator('[data-pad]:enabled').first().click();
+    assert.equal(await page.evaluate(() => window.sampleStarts), 1);
+    await page.getByRole('button', { name: '노트 게임' }).click();
+    const start = page.getByRole('button', { name: '게임 시작' });
+    assert.equal(await start.isEnabled(), midi === 83);
+    if (midi === 83) {
+      await start.click();
+      await page.getByText('준비 · 4', { exact: true }).waitFor();
+      await page.getByRole('button', { name: '중지' }).click();
+    } else {
+      await page
+        .getByText('이 곡에 필요한 음원을 다시 불러와 주세요.')
+        .waitFor();
+    }
+    await page.unroute(path);
+    const retried = [];
+    const count = request => {
+      if (request.url().endsWith('.wav')) retried.push(request.url());
+    };
+    page.on('request', count);
+    await page.getByRole('button', { name: '다시 시도' }).click();
+    await page.getByText('피아노 준비됨', { exact: true }).waitFor();
+    page.off('request', count);
+    assert.equal(retried.length, 1);
+    assert.ok(retried[0].endsWith(`piano${midi}.wav`));
+    assert.equal(await page.locator('[data-pad]:enabled').count(), 36);
+    assert.equal(await start.isEnabled(), true);
+  }
+}
+
 async function main() {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
@@ -62,6 +106,8 @@ async function main() {
         return start.apply(this, args);
       };
     });
+    await verifyPartialAudio(page);
+    console.log('PASS partial sample loading, required backing and retry');
     await verifySettings(page);
     console.log('PASS keyboard shortcuts and native settings controls');
   } finally {

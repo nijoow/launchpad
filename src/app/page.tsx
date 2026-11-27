@@ -6,7 +6,7 @@ import { pianoSounds, type Sound } from '@/constant/sound';
 import useAudioEngine from '@/hooks/useAudioEngine';
 import usePadInput from '@/hooks/usePadInput';
 import usePianoGame from '@/hooks/usePianoGame';
-import { melody } from '@/lib/ode-to-joy';
+import { melody, songSamples } from '@/lib/ode-to-joy';
 import { showTextStore } from '@/store/store';
 import PadBoard from './_components/PadBoard';
 import PerformanceSettings from './_components/PerformanceSettings';
@@ -15,7 +15,20 @@ import './piano.css';
 export default function Home() {
   const [mode, setMode] = useState<'free' | 'game'>('free');
   const gameMode = mode === 'game';
-  const { engine, ready, error, setError, retry } = useAudioEngine(pianoSounds);
+  const {
+    engine,
+    ready,
+    available,
+    failed,
+    playbackError,
+    error,
+    setError,
+    retry,
+  } = useAudioEngine(pianoSounds);
+  const pianoPlayable = !playbackError && available.size > 0;
+  const songReady =
+    !playbackError && songSamples.every(url => available.has(url));
+  const songLoadFailed = songSamples.some(url => failed.has(url));
   const game = usePianoGame(engine, setError);
   const { showPitch, showKeyboard, volume } = showTextStore();
   const play = (sound: Sound) => {
@@ -24,7 +37,7 @@ export default function Home() {
       ?.trigger(sound.url)
       .catch(() => setError('소리를 재생하지 못했어요. 다시 시도해 주세요.'));
   };
-  const input = usePadInput(pianoSounds, ready, play);
+  const input = usePadInput(pianoSounds, pianoPlayable, play, available);
 
   useEffect(() => {
     engine.current?.setVolume(volume);
@@ -80,11 +93,13 @@ export default function Home() {
           </div>
           <span role="status" className="audio-status">
             <span className={'status-light' + (ready ? ' ready' : '')} />
-            {error
+            {playbackError
               ? '오디오 오류'
-              : ready
-                ? '피아노 준비됨'
-                : '소리 불러오는 중'}
+              : failed.size
+                ? `피아노 ${available.size} / ${pianoSounds.length}개 준비됨`
+                : ready
+                  ? '피아노 준비됨'
+                  : '소리 불러오는 중'}
           </span>
         </div>
         {error && (
@@ -106,7 +121,7 @@ export default function Home() {
                 <button
                   type="button"
                   className="transport-button song-action"
-                  disabled={!ready}
+                  disabled={!running && !songReady}
                   onClick={() => {
                     input.releaseAll();
                     if (running) game.cancel();
@@ -125,7 +140,9 @@ export default function Home() {
                       ? `준비 · ${Math.min(4, view.count)}`
                       : view
                         ? `${view.bar} / 4마디 · ${view.hits} / ${melody.length}개 성공`
-                        : '테두리가 건반 가장자리에 닿을 때 눌러 주세요.'}
+                        : songLoadFailed
+                          ? '이 곡에 필요한 음원을 다시 불러와 주세요.'
+                          : '테두리가 건반 가장자리에 닿을 때 눌러 주세요.'}
               </p>
               {view && !view.done && (
                 <div className="song-hint">
@@ -153,7 +170,8 @@ export default function Home() {
         <PadBoard
           instrument="Piano"
           matrix
-          ready={ready}
+          ready={pianoPlayable}
+          available={available}
           active={input.active}
           cue={cue && view ? { url: cue.url, progress: view.progress } : null}
           showPitch={showPitch}

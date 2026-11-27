@@ -15,6 +15,7 @@ const octaves = [
 interface PadBoardProps {
   instrument: Instrument;
   ready: boolean;
+  available?: ReadonlySet<string>;
   active: Set<string>;
   playing?: Set<string>;
   matrix?: boolean;
@@ -28,6 +29,7 @@ interface PadBoardProps {
 export default function PadBoard({
   instrument,
   ready,
+  available,
   active,
   playing,
   matrix = false,
@@ -44,7 +46,9 @@ export default function PadBoard({
       octave={octave}
       active={active.has(sound.url) || !!playing?.has(sound.url)}
       cueProgress={cue?.url === sound.url ? cue.progress : undefined}
-      disabled={!ready}
+      disabled={
+        !ready || (available !== undefined && !available.has(sound.url))
+      }
       showPitch={showPitch}
       showKeyboard={showKeyboard}
       press={press}

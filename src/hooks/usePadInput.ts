@@ -7,13 +7,16 @@ export default function usePadInput(
   sounds: Sound[],
   enabled: boolean,
   onPlay: (sound: Sound) => void,
+  available?: ReadonlySet<string>,
 ) {
   const held = useRef(new HeldInputs());
   const [active, setActive] = useState(new Set<string>());
   const onPlayRef = useRef(onPlay);
+  const availableRef = useRef(available);
   useEffect(() => {
     onPlayRef.current = onPlay;
-  }, [onPlay]);
+    availableRef.current = available;
+  }, [onPlay, available]);
 
   const refresh = useCallback(() => setActive(held.current.active()), []);
   const release = useCallback(
@@ -28,7 +31,12 @@ export default function usePadInput(
   }, [refresh]);
   const press = useCallback(
     (source: string, sound: Sound) => {
-      if (!enabled || !held.current.press(source, sound.url)) return;
+      if (
+        !enabled ||
+        (availableRef.current && !availableRef.current.has(sound.url))
+      )
+        return;
+      if (!held.current.press(source, sound.url)) return;
       refresh();
       onPlayRef.current(sound);
     },
