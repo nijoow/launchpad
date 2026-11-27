@@ -40,11 +40,16 @@ export default function usePadInput(
     releaseAll();
     const down = (event: KeyboardEvent) => {
       const target = event.target instanceof Element ? event.target : null;
-      if (target?.closest('input, textarea, select, [contenteditable="true"]'))
+      if (
+        event.defaultPrevented ||
+        target?.closest(
+          'input:not([type="range"]):not([type="checkbox"]), textarea, select, [contenteditable]:not([contenteditable="false"])',
+        )
+      )
         return;
       if (
         ['Enter', 'Space'].includes(event.code) &&
-        target?.closest('button, a')
+        target?.closest('button, a, summary, input')
       )
         return;
       const sound = matchSound(sounds, event);
