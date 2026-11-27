@@ -6,6 +6,7 @@ const base = process.argv[2] || 'http://127.0.0.1:3000';
 async function verifySettings(page) {
   await page.goto(base);
   await page.locator('[data-pad]:enabled').first().click();
+  await page.waitForFunction(() => window.sampleStarts === 1);
   const volume = page.getByRole('slider', { name: '볼륨' });
   const pitch = page.getByRole('checkbox', { name: '음 이름' });
   for (const control of [volume, pitch]) {
@@ -62,6 +63,7 @@ async function verifyPartialAudio(page) {
       true,
     );
     await page.locator('[data-pad]:enabled').first().click();
+    await page.waitForFunction(() => window.sampleStarts === 1);
     assert.equal(await page.evaluate(() => window.sampleStarts), 1);
     await page.getByRole('button', { name: '노트 게임' }).click();
     const start = page.getByRole('button', { name: '게임 시작' });
@@ -91,6 +93,46 @@ async function verifyPartialAudio(page) {
   }
 }
 
+async function verifyInterruptions(page) {
+  await page.goto(base);
+  await page.getByRole('button', { name: '노트 게임' }).click();
+  const start = page.getByRole('button', { name: '게임 시작', exact: true });
+  const restart = page.getByRole('button', {
+    name: '처음부터 다시 연주',
+    exact: true,
+  });
+  await start.click();
+  await page.getByText('준비 · 4', { exact: true }).waitFor();
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+  await restart.waitFor();
+  await page.getByText('다른 화면으로 이동해 연주가 중단됐어요.').waitFor();
+  const scheduled = await page.evaluate(() => window.sampleStarts);
+  await restart.click();
+  await page.getByText('준비 · 4', { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => window.sampleStarts), scheduled * 2);
+  await page.waitForFunction(() =>
+    document.querySelector('.note-cue[data-on-beat=true]'),
+  );
+  await page.keyboard.press('g');
+  await page.getByText('1 / 15개 성공', { exact: false }).waitFor();
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      value: true,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+    delete document.hidden;
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await restart.waitFor();
+  assert.equal(await page.locator('.note-cue').count(), 0);
+  await restart.click();
+  await page.getByText('준비 · 4', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '중지', exact: true }).click();
+  await start.waitFor();
+  assert.equal(await restart.count(), 0);
+}
+
 async function main() {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
@@ -108,6 +150,10 @@ async function main() {
     });
     await verifyPartialAudio(page);
     console.log('PASS partial sample loading, required backing and retry');
+    await verifyInterruptions(page);
+    console.log(
+      'PASS count-in and mid-song interruption, restart and manual stop',
+    );
     await verifySettings(page);
     console.log('PASS keyboard shortcuts and native settings controls');
   } finally {

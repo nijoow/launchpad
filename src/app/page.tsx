@@ -128,21 +128,29 @@ export default function Home() {
                     else void game.start();
                   }}
                 >
-                  {running ? '중지' : view?.done ? '다시 연주' : '게임 시작'}
+                  {running
+                    ? '중지'
+                    : game.interrupted
+                      ? '처음부터 다시 연주'
+                      : view?.done
+                        ? '다시 연주'
+                        : '게임 시작'}
                 </button>
               </div>
               <p className="song-status" role="status">
                 {view?.done
                   ? `연주 완료 · ${view.hits} / ${melody.length}개 성공 · 정확 ${view.perfect}개 · 빗나간 입력 ${view.wrong}회`
-                  : game.starting
-                    ? '소리 준비 중'
-                    : view?.count
-                      ? `준비 · ${Math.min(4, view.count)}`
-                      : view
-                        ? `${view.bar} / 4마디 · ${view.hits} / ${melody.length}개 성공`
-                        : songLoadFailed
-                          ? '이 곡에 필요한 음원을 다시 불러와 주세요.'
-                          : '테두리가 건반 가장자리에 닿을 때 눌러 주세요.'}
+                  : game.interrupted
+                    ? '다른 화면으로 이동해 연주가 중단됐어요.'
+                    : game.starting
+                      ? '소리 준비 중'
+                      : view?.count
+                        ? `준비 · ${Math.min(4, view.count)}`
+                        : view
+                          ? `${view.bar} / 4마디 · ${view.hits} / ${melody.length}개 성공`
+                          : songLoadFailed
+                            ? '이 곡에 필요한 음원을 다시 불러와 주세요.'
+                            : '테두리가 건반 가장자리에 닿을 때 눌러 주세요.'}
               </p>
               {view && !view.done && (
                 <div className="song-hint">

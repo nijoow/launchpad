@@ -14,23 +14,31 @@ export default function usePianoGame(
   onError: (message: string) => void,
 ) {
   const round = useRef<PianoRound | null>(null);
+  const active = useRef(false);
   const frame = useRef(0);
   const generation = useRef(0);
   const [view, setView] = useState<ReturnType<PianoRound['view']> | null>(null);
   const [starting, setStarting] = useState(false);
 
-  const cancel = useCallback(() => {
-    generation.current++;
-    cancelAnimationFrame(frame.current);
-    round.current = null;
-    engine.current?.stopAll();
-    setView(null);
-    setStarting(false);
-  }, [engine]);
+  const [interrupted, setInterrupted] = useState(false);
+
+  const cancel = useCallback(
+    (reason: 'manual' | 'interrupted' = 'manual') => {
+      active.current = false;
+      setInterrupted(reason === 'interrupted');
+      generation.current++;
+      cancelAnimationFrame(frame.current);
+      round.current = null;
+      engine.current?.stopAll();
+      setView(null);
+      setStarting(false);
+    },
+    [engine],
+  );
 
   useEffect(() => {
     const interrupt = () => {
-      if (round.current || starting) cancel();
+      if (active.current) cancel('interrupted');
     };
     const hide = () => {
       if (document.hidden) interrupt();
@@ -41,7 +49,7 @@ export default function usePianoGame(
       document.removeEventListener('visibilitychange', hide);
       window.removeEventListener('blur', interrupt);
     };
-  }, [cancel, starting]);
+  }, [cancel]);
 
   useEffect(
     () => () => {
@@ -55,6 +63,7 @@ export default function usePianoGame(
     const audio = engine.current;
     if (!audio) return;
     cancel();
+    active.current = true;
     const attempt = generation.current;
     setStarting(true);
     try {
@@ -79,8 +88,10 @@ export default function usePianoGame(
       const update = () => {
         const next = run.view(audio.currentTime);
         setView(next);
-        if (next.done) round.current = null;
-        else frame.current = requestAnimationFrame(update);
+        if (next.done) {
+          active.current = false;
+          round.current = null;
+        } else frame.current = requestAnimationFrame(update);
       };
       update();
     } catch {
@@ -93,5 +104,5 @@ export default function usePianoGame(
   const press = (pad: string) => {
     if (engine.current) round.current?.press(pad, engine.current.currentTime);
   };
-  return { start, cancel, press, view, starting };
+  return { start, cancel, press, view, starting, interrupted };
 }
