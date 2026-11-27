@@ -152,7 +152,6 @@ export class LoopTransport {
               event => !options.recordPadIds!.includes(event.padId),
             )
           : [];
-      if (record) this.events = [...this.backing];
       this.recordStart = base + (record ? BEATS_PER_BAR * secondsPerBeat : 0);
       this.playbackStart =
         this.recordStart + (record ? LOOP_BEATS * secondsPerBeat : 0);
@@ -168,6 +167,13 @@ export class LoopTransport {
     }
   }
 
+  private finishCountIn() {
+    if (this.status === 'countin') {
+      this.events = this.backing;
+      this.status = 'recording';
+    }
+  }
+
   capture(padId: string) {
     if (this.status !== 'recording' && this.status !== 'countin') return;
     const beat = recordedBeat(
@@ -176,9 +182,12 @@ export class LoopTransport {
       this.options.bpm,
       this.options.quantize,
     );
-    if (beat === null || this.events.length >= MAX_EVENTS) return;
+    if (beat === null) return;
     if (this.options.recordPadIds && !this.options.recordPadIds.includes(padId))
       return;
+    // A pad can arrive on the downbeat before the next scheduler tick.
+    this.finishCountIn();
+    if (this.events.length >= MAX_EVENTS) return;
     // Quantization can align two quick taps to one step; play it only once in the loop.
     if (
       !this.events.some(
@@ -198,8 +207,7 @@ export class LoopTransport {
     const now = this.audio.currentTime;
     const horizon = now + 0.1;
     const secondsPerBeat = 60 / this.options.bpm;
-    if (this.status === 'countin' && now >= this.recordStart)
-      this.status = 'recording';
+    if (now >= this.recordStart) this.finishCountIn();
     if (this.status === 'recording' && now >= this.playbackStart) {
       if (!this.events.length) {
         this.stop('녹음된 음이 없어요. 녹음 중에 패드를 눌러 주세요.');
