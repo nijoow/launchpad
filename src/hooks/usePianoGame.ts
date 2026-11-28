@@ -8,6 +8,7 @@ import {
 import type { AudioEngine } from '@/lib/audio-engine';
 import { accompaniment, BEAT_SECONDS } from '@/lib/ode-to-joy';
 import { PianoRound } from '@/lib/piano-round';
+import type { MeasuredRound, TimedPress } from '@/lib/piano-timing';
 
 export default function usePianoGame(
   engine: RefObject<AudioEngine>,
@@ -15,6 +16,7 @@ export default function usePianoGame(
 ) {
   const round = useRef<PianoRound | null>(null);
   const active = useRef(false);
+  const taps = useRef<TimedPress[] | null>(null);
   const frame = useRef(0);
   const generation = useRef(0);
   const [view, setView] = useState<ReturnType<PianoRound['view']> | null>(null);
@@ -25,6 +27,7 @@ export default function usePianoGame(
   const cancel = useCallback(
     (reason: 'manual' | 'interrupted' = 'manual') => {
       active.current = false;
+      taps.current = null;
       setInterrupted(reason === 'interrupted');
       generation.current++;
       cancelAnimationFrame(frame.current);
@@ -59,7 +62,7 @@ export default function usePianoGame(
     [],
   );
 
-  const start = async () => {
+  const start = async (onMeasuredRound?: (result: MeasuredRound) => void) => {
     const audio = engine.current;
     if (!audio) return;
     cancel();
@@ -72,6 +75,7 @@ export default function usePianoGame(
       const countStart = audio.currentTime + 0.04;
       const run = new PianoRound(countStart + BEAT_SECONDS * 4);
       round.current = run;
+      if (onMeasuredRound) taps.current = [];
       for (let i = 0; i < 4; i++)
         audio.playClick(countStart + i * BEAT_SECONDS, i === 0);
       for (const note of accompaniment) {
@@ -91,6 +95,15 @@ export default function usePianoGame(
         if (next.done) {
           active.current = false;
           round.current = null;
+          if (onMeasuredRound && taps.current) {
+            onMeasuredRound({
+              taps: taps.current,
+              hits: next.hits,
+              perfect: next.perfect,
+              wrong: next.wrong,
+            });
+            taps.current = null;
+          }
         } else frame.current = requestAnimationFrame(update);
       };
       update();
@@ -102,7 +115,11 @@ export default function usePianoGame(
     }
   };
   const press = (pad: string) => {
-    if (engine.current) round.current?.press(pad, engine.current.currentTime);
+    const run = round.current;
+    if (!engine.current || !run) return;
+    const now = engine.current.currentTime;
+    taps.current?.push({ pad, ms: Math.round((now - run.startsAt) * 1000) });
+    run.press(pad, now);
   };
   return { start, cancel, press, view, starting, interrupted };
 }

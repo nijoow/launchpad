@@ -1,5 +1,6 @@
 // Run with Playwright available, against a running local production build.
 const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
 const { chromium } = require('playwright');
 const base = process.argv[2] || 'http://127.0.0.1:3000';
 
@@ -133,6 +134,63 @@ async function verifyInterruptions(page) {
   assert.equal(await restart.count(), 0);
 }
 
+async function verifyTimingReport(browser) {
+  const page = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  await page.goto(new URL('/timing-test', base).href);
+  await page.getByLabel('휴대폰 기종').fill('Browser test');
+  await page.getByLabel('브라우저와 버전').fill('Chromium test');
+  await page.getByLabel('현재 연결한 출력').selectOption('블루투스 이어폰');
+  await page.getByRole('button', { name: '측정용 게임 열기' }).tap();
+  await page.getByRole('button', { name: '게임 시작' }).tap();
+  await page.getByText('준비 · 4', { exact: true }).waitFor();
+  await page.getByRole('button', { name: '측정 조건으로 돌아가기' }).tap();
+  assert.equal(
+    await page.getByRole('heading', { name: /완주 기록/ }).count(),
+    0,
+  );
+
+  await page.getByRole('button', { name: '측정용 게임 열기' }).tap();
+  await page.getByRole('button', { name: '게임 시작' }).tap();
+  await page.getByText('준비 · 4', { exact: true }).waitFor();
+  // Deliberately rush the full phrase. These synthetic taps test data export only.
+  for (const midi of [
+    76, 76, 77, 79, 79, 77, 76, 74, 72, 72, 74, 76, 76, 74, 74,
+  ]) {
+    await page.locator(`[data-pad$="piano${midi}.wav"]`).tap();
+  }
+  await page.getByRole('heading', { name: '완주 기록 · 1회' }).waitFor();
+  await page.getByLabel('연주 체감').fill('automated export check');
+  await page.reload();
+  await page.getByLabel('연주 체감').waitFor();
+  assert.equal(
+    await page.getByLabel('연주 체감').inputValue(),
+    'automated export check',
+  );
+  const downloaded = page.waitForEvent('download');
+  await page.getByRole('button', { name: '결과 JSON 내려받기' }).tap();
+  const report = JSON.parse(
+    await fs.readFile(await (await downloaded).path(), 'utf8'),
+  );
+  const [trial] = report.trials;
+  assert.equal(report.trials.length, 1);
+  assert.equal(trial.output, '블루투스 이어폰');
+  assert.equal(trial.device, 'Browser test');
+  assert.equal(trial.browser, 'Chromium test');
+  assert.equal(trial.feeling, 'automated export check');
+  assert.equal(trial.taps.length, 15);
+  assert.equal(report.targets.length, 15);
+  assert.deepEqual(
+    trial.timing.offsetsMs,
+    trial.taps.map((tap, i) => tap.ms - report.targets[i].ms),
+  );
+  assert.ok(trial.timing.median < -150);
+  await page.close();
+}
+
 async function main() {
   const browser = await chromium.launch({
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
@@ -148,6 +206,8 @@ async function main() {
         return start.apply(this, args);
       };
     });
+    await verifyTimingReport(browser);
+    console.log('PASS timing trial capture, reload and report download');
     await verifyPartialAudio(page);
     console.log('PASS partial sample loading, required backing and retry');
     await verifyInterruptions(page);
